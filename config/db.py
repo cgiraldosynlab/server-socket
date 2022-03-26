@@ -1,13 +1,14 @@
+import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
-
 
 class Database:
     
     def __init__(self, **args):
+        __ISCONNECT = False
         try:
             self.conn = None
-            self.qry = None
+            self.qry = None            
 
             # leer parametros de conexión de las variables de entorno del S.O
             #pg_host = os.environ['PG_HOST']
@@ -32,8 +33,12 @@ class Database:
                 password=pg_password
             )
             self.qry = self.conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
-            print('connection suceful')
+            rows = self.qry.execute('SELECT 1 + 1')
+            if rows: 
+                self.__ISCONNECT = True
+            ##print('connection suceful')
         except Exception as e:
+            self.__ISCONNECT = False
             print('error:', e)
 
     def query(self, sql_text, params=None, one=False):
