@@ -1,9 +1,72 @@
+# proyecto de prueba para conexión con socket
+import datetime
+import os
 import socket
-import time
-from hl7 import parse_hl7
-from hl7apy.core import *
-from hl7apy.parser import *
 
+class ClientSocket:
+
+    __MENSAJE = None
+
+    def __init__(self):
+        value = ''
+
+        if not os.path.exists('files'):
+            os.mkdir('files')
+
+        ruta = f'{os.path.dirname(__file__)}/message.hl7'
+        if os.path.exists(ruta):
+            value = open(ruta)
+            self.__MENSAJE = value.read()
+        else:
+            value = input('Ingresar un valor a enviar para el servidor: ')
+
+    def enviar(self, msg_custom=None):
+        try:
+            # conectar con el server
+            __CLIENT = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            __CLIENT.connect((os.environ.get('SOCKET_SERVER_HOST'), int(os.environ.get('SOCKET_SERVER_PORT'))))
+
+            if msg_custom is not None:
+                __CLIENT.send(msg_custom.encode())
+                resp = __CLIENT.recv(1024)
+                if self.__MENSAJE and self.__MENSAJE is not None:
+                    if resp:
+                        print(f'[x] response: {resp.decode()}')
+                    else:
+                        print('[x] ERROR: no se obtuvo respuesta del servidor')
+                else:
+                    print('[x] no hay mensaje para enviar')
+            else:
+                __CLIENT.send(self.__MENSAJE.encode())
+                resp = __CLIENT.recv(1024)
+                if self.__MENSAJE and self.__MENSAJE is not None:
+                    if resp:
+                        fecha = datetime.datetime.now()
+                        print(f'[x] {fecha} | response: {resp.decode()}')
+                    else:
+                        print('[x] ERROR: no se obtuvo respuesta del servidor')
+                else:
+                    print('[x] no hay mensaje para enviar')
+
+            __CLIENT.close()
+        except Exception as e:
+            print(e)
+
+    def count_message(self):
+        try:
+            files = os.listdir('files')
+            print(len(files))
+        except Exception as e:
+            print(e)
+
+cs = ClientSocket()
+for item in range(1000):
+    cs.enviar()
+else:
+    cs.enviar('close')
+    cs.count_message()
+
+'''
 dato = str(input('Mensaje a enviar: '))
 sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sc.connect(('localhost', 8000))
@@ -12,3 +75,4 @@ sc.send(byt)
 resp = sc.recv(1024)
 print(str(resp.decode()))
 sc.close()
+'''

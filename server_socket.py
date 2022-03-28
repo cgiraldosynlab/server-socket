@@ -1,14 +1,14 @@
 # servidor socket
-import datetime
-from imp import reload
 import os
+import gc
+import datetime
 import socket
-import ssl
-from typing import final
+import hl7
+import random
 
 from models.log import (LogApp, LogIn, LogFile)
-from controllers.message_hl7 import ACK
 from config.db import Database
+
 '''
 MAC/LINUX
 export SOCKET_SERVER_HOST=localhost SOCKET_SERVER_PORT=8000 SOCKET_SERVER_BUFFER=65507 SOCKET_SERVER_LIMIT_CLIENT=10
@@ -34,7 +34,6 @@ class Server:
     __BUFFER_MAX = 65507    
     __CLIENT_LIMIT = 10
     __SC = None
-    __listClient = []
     __CANCEL = False
     __CHAR_IN = ''
     __CHAR_OUT = ''
@@ -56,50 +55,70 @@ class Server:
                 
             self.__SC = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.__SC.bind((self.__HOST, self.__PORT))
-            #self.__SC.settimeout()
         except Exception as e:
             self.__IS_ERROR = True
             print(f'error al inicializar el server [{e}]')
 
-
     def acceptClient(self):
-        fecha = datetime.datetime.now()
+        fecha = datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
         print(f'[x] - {fecha} | servidor iniciado ')
         while True and (not self.__CANCEL):
             try:
-                fecha = datetime.datetime.now()
+                fecha = datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
 
                 # obtener información del cliente
                 (client, addr) = self.__SC.accept()        
                 try:
                     client.setblocking(False)
                 except:
-                    pass        
+                    pass
+
                 print(f'[x] - {fecha} | cliente conectado | {addr[0]}:{addr[1]}')
 
                 # recibir mensaje
                 data = client.recv(self.__BUFFER_MAX)
                 if not data: 
                     client.send('el mensaje fue vacio'.encode())
-                else:                     
+                else:
                     if data.decode() == 'close':
+                        # mensaje que permite detener el servidor de socket
                         self.__CANCEL = True
                         client.send(f'-- data: {data.decode()}'.encode())
+                        print(f'[x] - {fecha} | servidor cerrado ')
                         break
                     elif data.decode() == 'delete-logs':
+                        # mensaje que permite borrar los logs de la base de datos
+                        Database().delete('delete from log.log_app WHERE l_id > %s', (0,))
+                        Database().delete('delete from log.log_out where lout_id > %s', (0,))
                         client.send(f'-- data: {data.decode()}'.encode())
                         pass
                     else:
-                        client.send(f'-- data: {data.decode()}'.encode())
+                        # recibe cualquier mensaje y debe procesar en formato HL7
+                        resp = ''
+                        name_file = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') #+ '_' + str(random.randrange(0, 100000))
+                        file = open(f'files/{name_file}.hl7', 'a')
+                        try:
+                            mensaje_in = data.decode()
+                            file.write(data.decode())
+                            hl7_data = hl7.parse(mensaje_in)
+                            if hl7.ishl7(mensaje_in):
+                                resp = 'es un hl7'
+                            else:
+                                resp = 'mensaje formateado con éxito'
+                        except Exception as e:
+                            resp = f'error al procesar el mensaje [{e}]'
+                        finally:
+                            client.send(f'-- data: {resp}'.encode())
+                            file.close()
             except Exception as e: 
-                client.send('lo sentimos el mensaje no pudo ser procesado'.encode())
+                client.send(f'lo sentimos el mensaje no pudo ser procesado error {e}'.encode())
             finally:
                 if client is not None:
                     client.close()
                 if (self.__CANCEL): 
                     break
+                gc.collect()
         self.close()
-        print(self.__listClient)
 
     '''
     def open(self):
