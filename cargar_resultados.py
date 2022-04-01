@@ -34,8 +34,10 @@ class SubirResultados(Database):
                  where ro.resout_fecha_in >= CURRENT_DATE-10
                    and ro.resout_usuario_ws = 'HIUSJ'
                    and ro.resout_publicado  = 1
-                   and ro.resout_solicitado = 0
-                order by 1 desc limit 1
+                   and ro.resout_solicitado = 1
+                   and ro.resout_id         = 2803149
+              order by resout_id desc 
+                 limit 1
             ''')
             print(f'[x] {fecha} | cantidad de resultados encontrados {len(rows)} ')
             for row in rows:
