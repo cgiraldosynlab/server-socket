@@ -155,7 +155,8 @@ class Server:
                 (client, addr) = self.__SC.accept()
                 __client_str = f'{addr[0]:{addr[1]}}'
                 try:
-                    client.setblocking(False)
+                    pass
+                    #client.setblocking(False)
                 except:
                     pass
 
