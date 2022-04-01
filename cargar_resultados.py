@@ -53,7 +53,7 @@ class SubirResultados(Database):
                     __CLIENT.settimeout(120)
                     __CLIENT.send(mensaje.encode(encoding='utf-8'))
                     print(f'[x] {fecha} | mensaje enviado al servicio socket | {self.__HOST}:{self.__PORT} | id: {row.id}')
-                    resp = __CLIENT.recv()
+                    resp = __CLIENT.recv(65507)
                     print(f'[x] {fecha} |  | ')
                     if resp:
                         print(f'[x] {fecha} | guardando respuesta | {self.__HOST}:{self.__PORT} | id: {row.id}')
