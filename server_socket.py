@@ -228,26 +228,16 @@ class Server:
 
                                 client.send(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
                                 client.sendall(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
-                                print('llegue al final')
                                 client.close()
+                                print('llegue al final')
                             except Exception as e:
-                                print(e)
+                                print(f'[x] {fecha} | error: {e} ')
                                 msa = MSA('')
                                 msa.message = f'error: {e}'
                                 if isinstance(resp, ACK):
                                     resp.add_msa(msa.get_str())
-                                    if client:
-                                        client.send(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
                                 if resp is not None:
                                     LogSys().error('socket', f'{resp.get_str()} - error [{e}]')
-                            finally:
-                                # client.send(f'{self.__CHAR_IN}{resp}{self.__CHAR_OUT}'.encode())
-                                if resp is not None and isinstance(resp, ACK):
-                                    client.send(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
-                                    is_response = True
-                                else:
-                                    client.send(f'{self.__CHAR_IN}mensaje no pudo ser decodificado{self.__CHAR_OUT}'.encode())
-                                    is_response = True
                     except Exception as e:
                         print('error', e)
 
