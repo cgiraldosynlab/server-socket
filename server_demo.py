@@ -29,7 +29,7 @@ try:
             else:
                 print('[x] mensaje recibido', len(data.decode()))
 
-            client.send(f'{__CHAR_IN}[x] hola te saludo desde el servidor{__CHAR_OUT}'.encode())
+            client.send(f'{__CHAR_IN}hola te saludo desde el servidor{__CHAR_OUT}'.encode())
             try:
                 client.shutdown(__how=socket.SHUT_WR)
                 client.close()

@@ -192,25 +192,27 @@ class Server:
                                 resp = ACK('2.3')
                                 msa = MSA('')
 
-                                ''' recepciónar mensaje '''
+                                ''' guardar mensaje '''
                                 mensaje_in = mensaje
                                 LogApp(codigo='python', mensaje=mensaje_in)
                                 file.write(mensaje_in)
                                 file.close()
+                                print('guarde el mensaje')
 
                                 ''' validar si es un mensaje HL7 '''
                                 if not hl7.ishl7(mensaje_in):
                                     msa.message = 'error al formatear el mensaje HL7'
                                     resp.add_msa(msa.get_str())
+                                    print('no es un HL7')
                                     return
 
                                 ''' load file '''
                                 lines = open(f'files/{self.__FOLDER_PENDIENTE}/{name_file}.hl7', 'r').readlines()
                                 msj = '\r'.join(lines)
                                 h = hl7.parse(lines=msj, encoding='utf-8')
+                                print('información cargada')
 
                                 ''' procesar mensaje HL7 '''
-                                msh = h.segment('MSH')
                                 try:
                                     control_id = h['MSH'][0][10]
                                     msa.message_control_id = control_id
@@ -226,6 +228,10 @@ class Server:
                                 msa.message = 'mensaje procesado con éxito'
                                 resp.add_msa(msa.get_str())
                                 client.send(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
+                                client.sendall(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
+
+                                print('llegue al final')
+
                                 client.close()
                             except Exception as e:
                                 print(e)
