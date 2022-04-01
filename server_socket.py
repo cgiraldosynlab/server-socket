@@ -5,9 +5,10 @@ import datetime
 import socket
 import hl7
 import random
-
-from models.log import (LogApp, LogIn, LogFile)
+from models.log import (LogIn, LogApp)
 from config.db import Database
+from helpers.logger import LogSys
+from controllers.message_hl7 import MSH, MSA, ACK
 
 '''
 MAC/LINUX
@@ -35,8 +36,10 @@ class Server:
     __CLIENT_LIMIT = 10
     __SC = None
     __CANCEL = False
-    __CHAR_IN = ''
-    __CHAR_OUT = ''
+    __CHAR_IN = chr(11)
+    __CHAR_OUT = chr(28)
+    __FOLDER_PENDIENTE = 'pendiente'
+    __FOLDER_PROCESADO = 'procesado'
 
     def __init__(self):
         try:
@@ -57,67 +60,116 @@ class Server:
             self.__SC.bind((self.__HOST, self.__PORT))
         except Exception as e:
             self.__IS_ERROR = True
-            print(f'error al inicializar el server [{e}]')
+            LogSys().error('python', f'error inicializando el servicio socket [{e}]')
 
     def acceptClient(self):
-        fecha = datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
-        print(f'[x] - {fecha} | servidor iniciado ')
+        fecha = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        print(f'[x] - {fecha} | servidor iniciado | {self.__HOST}:{self.__PORT} ')
         while True and (not self.__CANCEL):
             try:
-                fecha = datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
+                is_response = False
+                fecha = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
                 # obtener información del cliente
-                (client, addr) = self.__SC.accept()        
+                (client, addr) = self.__SC.accept()
+                __client_str = f'{addr[0]:{addr[1]}}'
                 try:
                     client.setblocking(False)
                 except:
                     pass
 
-                print(f'[x] - {fecha} | cliente conectado | {addr[0]}:{addr[1]}')
-
+                print(f'[x] - {fecha} | cliente conectado | info: {addr[0]}:{addr[1]}')
                 # recibir mensaje
                 data = client.recv(self.__BUFFER_MAX)
                 if not data: 
-                    client.send('el mensaje fue vacio'.encode())
+                    client.send('error - el mensaje no puede ser vacio'.encode())
                 else:
-                    if data.decode() == 'close':
-                        # mensaje que permite detener el servidor de socket
-                        self.__CANCEL = True
-                        client.send(f'-- data: {data.decode()}'.encode())
-                        print(f'[x] - {fecha} | servidor cerrado ')
-                        break
-                    elif data.decode() == 'delete-logs':
-                        # mensaje que permite borrar los logs de la base de datos
-                        Database().delete('delete from log.log_app WHERE l_id > %s', (0,))
-                        Database().delete('delete from log.log_out where lout_id > %s', (0,))
-                        client.send(f'-- data: {data.decode()}'.encode())
-                        pass
-                    else:
-                        # recibe cualquier mensaje y debe procesar en formato HL7
-                        resp = ''
-                        name_file = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') #+ '_' + str(random.randrange(0, 100000))
-                        file = open(f'files/{name_file}.hl7', 'a')
-                        try:
-                            mensaje_in = data.decode()
-                            file.write(data.decode())
-                            hl7_data = hl7.parse(mensaje_in)
-                            if hl7.ishl7(mensaje_in):
-                                resp = 'es un hl7'
-                            else:
-                                resp = 'mensaje formateado con éxito'
-                        except Exception as e:
-                            resp = f'error al procesar el mensaje [{e}]'
-                        finally:
-                            client.send(f'-- data: {resp}'.encode())
-                            file.close()
-            except Exception as e: 
-                client.send(f'lo sentimos el mensaje no pudo ser procesado error {e}'.encode())
+                    try:
+                        if data.decode() == 'close':
+                            # mensaje que permite detener el servidor de socket
+                            self.__CANCEL = True
+                            client.send(f'-- data: {data.decode()}'.encode())
+                            print(f'[x] - {fecha} | servidor cerrado ')
+                            break
+                        elif data.decode() == 'delete-logs':
+                            # mensaje que permite borrar los logs de la base de datos
+                            Database().delete('delete from log.log_app WHERE l_id > %s', (0,))
+                            Database().delete('delete from log.log_out where lout_id > %s', (0,))
+                            client.send(f'{data.decode()}'.encode())
+                            pass
+                        else:
+                            # recibe cualquier mensaje y debe procesar en formato HL7
+                            name_file = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') + '_' + str(random.randrange(0, 100000))
+                            file = open(f'files/{self.__FOLDER_PENDIENTE}/{name_file}.hl7', 'a', encoding='utf-8')
+                            try:
+                                resp = ACK('2.3')
+                                msa = MSA('')
+
+                                ''' recepciónar mensaje '''
+                                mensaje_in = data.decode(encoding='utf-8').replace(self.__CHAR_IN, '').replace(self.__CHAR_OUT, '')
+                                LogApp(codigo='python', mensaje=mensaje_in)
+                                file.write(mensaje_in)
+                                file.close()
+
+                                ''' validar si es un mensaje HL7 '''
+                                if not hl7.ishl7(mensaje_in):
+                                    msa.message = 'error al formatear el mensaje HL7'
+                                    resp.add_msa(msa.get_str())
+                                    return
+
+                                ''' load file '''
+                                lines = open(f'files/{self.__FOLDER_PENDIENTE}/{name_file}.hl7', 'r').readlines()
+                                msj = '\r'.join(lines)
+                                h = hl7.parse(lines=msj, encoding='utf-8')
+
+                                ''' procesar mensaje HL7 '''
+                                msh = h.segment('MSH')
+                                try:
+                                    control_id = h['MSH'][0][10]
+                                    msa.message_control_id = control_id
+                                except Exception as e:
+                                    print('control_id:', e)
+
+                                try:
+                                    version = h['MSH'][0][12]
+                                    resp.version(version)
+                                except Exception as e:
+                                    print('version:', e)
+
+                                msa.message = 'mensaje procesado con éxito'
+                                resp.add_msa(msa.get_str())
+                            except Exception as e:
+                                # resp = f'error al procesar el mensaje [{e}]'
+                                msa = MSA('')
+                                msa.message = f'error: {e}'
+                                if isinstance(resp, ACK):
+                                    resp.add_msa(msa.get_str())
+
+                                if resp is not None:
+                                    LogSys().error('socket', f'{resp.get_str()} - error [{e}]')
+                            finally:
+                                # client.send(f'{self.__CHAR_IN}{resp}{self.__CHAR_OUT}'.encode())
+                                if resp is not None and isinstance(resp, ACK):
+                                    client.send(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
+                                    is_response = True
+                                else:
+                                    client.send(f'{self.__CHAR_IN}mensaje no pudo ser decodificado{self.__CHAR_OUT}'.encode())
+                                    is_response = True
+                    except Exception as e:
+                        print('error', e)
+            except Exception as e:
+                #resp = 'lo sentimos el mensaje no pudo ser procesado'
+                #client.send(f'{resp} - error [{e}]'.encode())
+                LogSys().error(f'error [{e}]')
+                if is_response == False:
+                    client.send(f'{resp} - error [{e}]'.encode())
             finally:
                 if client is not None:
                     client.close()
                 if (self.__CANCEL): 
                     break
                 gc.collect()
+
         self.close()
 
     '''
@@ -202,7 +254,7 @@ class Server:
 
     def listen(self, limit=None) -> bool:
         try:
-            LogApp('socket', 'socket | method: listen | servidor socket iniciado')
+            LogSys.info('socket', 'socket | method: listen | servidor socket iniciado')
             if self.__SC is not None:
                 if limit is None:
                     self.__SC.listen(self.__CLIENT_LIMIT)
@@ -212,15 +264,15 @@ class Server:
             else:
                 return False
         except Exception as e:
-            print(f'error al activar el servidor | {e}')
+            LogSys().error(f'error al activar el servidor | {e}')
             return False
 
     def close(self):
         try:
-            LogApp('socket', 'socket | method: close | servidor socket cerrado')
+            LogSys().info('socket', 'socket | method: close | servidor socket cerrado')
             self.__SC.close()
         except Exception as e:
-            print('error al cerrar el servidor ', e)
+            LogSys().error(f'error al cerrar el servidor - error {e}')
 
     def isError(self) -> bool:
         return self.__IS_ERROR

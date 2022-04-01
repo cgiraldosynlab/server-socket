@@ -1,0 +1,1 @@
+MSH||^~\&|SYNLAB||||202259033122165955582309||ACK^ACK|e6419bfa-b13d-11ec-a3ae-985aebe4252e||2.5MSA|1|671354|mensaje procesado con éxito|0|||0|H|

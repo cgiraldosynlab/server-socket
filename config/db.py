@@ -83,6 +83,15 @@ class Database:
             self.conn.rollback()
             print('error:', e)
 
+    def update_sql(self, sql_update):
+        try:
+            self.qry.execute(sql_update)
+            self.conn.commit()
+            return self.qry.rowcount > 0
+        except Exception as e:
+            self.conn.rollback()
+            print('error:', e)
+
     def delete(self, sql_delete, params):
         try:
             if params is None:

@@ -1,83 +1,114 @@
+import uuid
+import datetime
 from config.db import Database
-import hl7
-from hl7apy.core import *
-from hl7apy.parser import *
-from hl7apy.validation import Validator
-from models.log import LogIn
 
-class ORM(Database):
+class MSH:
+    field_separator = ''
+    encoding_caracteres = '^~\&'
+    sender = 'SYNLAB'
+    sender_facility = ''
+    receptor = ''
+    receptor_facility = ''
+    date_message = datetime.datetime.now().strftime('%Y%M%D%H%M%S%f').replace('/', '')
+    security = ''
+    message_type = type
+    control_id = uuid.uuid4().hex
+    process_id = ''
+    version = ''
+    sequence_numer = 0
+    continuation_pointer = ''
 
-    # properties
-    __message = None
-    __hl7 = None
-    __isLoad = False
-    __isHL7 = False
+    def __init__(self, type, version, **kwargs):
 
-    def __init__(self, msg) -> None:
         try:
-            super().__init__()
-            if msg != '':
-                self.__message = msg
-                self.__hl7 = parse_message(message=self.__message, force_validation=False, find_groups=False)
-                self.__isLoad = True
-                self.__isHL7 = hl7.parse_hl7(self.__message)
-                LogIn('socket', self.__message)
-        except Exception as e:
-            print(__file__, ':', e)
-
-    def set_message(self, msg) -> None:
-        try:
-            return self.__message
-        except Exception as e:
-            print(__file__, ':', e)
-
-    def get_header(self):
-        try:
-            if self.__isLoad:
-                return self.__hl7.msh
+            if kwargs.get('trama'):
+                msh_str = kwargs.get('trama')
+                return
             else:
-                return ''
+                self.field_separator = ''
+                self.encoding_caracteres = '^~\&'
+                self.sender = 'SYNLAB'
+                self.sender_facility = ''
+                self.receptor = ''
+                self.receptor_facility = ''
+                self.date_message = datetime.datetime.now().strftime('%Y%M%D%H%M%S%f').replace('/', '')
+                self.security = ''
+                self.message_type = type
+                self.control_id = uuid.uuid1()
+                self.process_id = ''
+                self.version = version
+                self.sequence_numer = 0
+                self.continuation_pointer = ''
         except Exception as e:
-            pass
+            print('error ini', e)
 
-    def get_paciente(self):
+    def get_str(self) -> str:
         try:
-            pass
+            msg_str = f'MSH|{self.field_separator}|'
+            msg_str += f'{self.encoding_caracteres}|'
+            msg_str += f'{self.sender}|'
+            msg_str += f'{self.sender_facility}|'
+            msg_str += f'{self.receptor}|'
+            msg_str += f'{self.receptor_facility}|'
+            msg_str += f'{self.date_message}|'
+            msg_str += f'{self.security}|'
+            msg_str += f'{self.message_type}|'
+            msg_str += f'{self.control_id}|'
+            msg_str += f'{self.process_id}|'
+            msg_str += f'{self.version}\r'
+            return msg_str
         except Exception as e:
-            pass
+            return e
 
-    def get_ubicacion(self):
-        pass
+class MSA:
 
-    def get_ordenes(self):
+    def __init__(self, control_id):
         try:
-            # procedimiento para retornar todos los ORD del paciente
-            #             
-            pass
+            self.acknowledgment_code = 1
+            self.message_control_id = control_id
+            self.message = ''
+            self.sequence_number = 0
+            self.delayed_Acknowledgment_type = ''
+            self.error_condition = ''
+            self.message_waiting_number = 0
+            self.message_waiting_priority = 'H'
         except Exception as e:
-            print(__file__, ':', e)
+            print('error - msa', e)
 
-    def get_detalles(self):
-        pass
+    def get_str(self):
+        msg_return = f'MSA|{self.acknowledgment_code}|'
+        msg_return += f'{self.message_control_id}|'
+        msg_return += f'{self.message}|'
+        msg_return += f'{self.sequence_number}|'
+        msg_return += f'{self.delayed_Acknowledgment_type}|'
+        msg_return += f'{self.error_condition}|'
+        msg_return += f'{self.message_waiting_number}|'
+        msg_return += f'{self.message_waiting_priority}|\r'
+        return msg_return
 
-    def get_notas(self):
-        pass
+class ACK:
 
-    def get_notas_obx(self):
-        pass
-
-class ACK(Database):
-    def __init__(self, **args):
+    def __init__(self, version):
         try:
-            print(args)
-            super().__init__()
-            self.ack = Message('ACK_O01')
-            print(self.ack.msh.value)
-            self.ack.add_segment('MSA')
+            self.__msh = MSH(type='ack^ack'.upper(), version=version)
+            self.__msa = []
+        except Exception as e:
+            print('ACK-ERROR', e)
+
+    def add_msa(self, msa):
+        try:
+            self.__msa.append(msa)
         except Exception as e:
             print(e)
 
-    def get_ack(self) -> str:
-        return self.ack.value
-    
-    
+    def version(self, version):
+        self.__msh.version = version
+
+    def get_str(self) -> str:
+        try:
+            return self.__msh.get_str() + '\r'.join(self.__msa)
+        except Exception as e:
+            return e
+
+class PID:
+    pass

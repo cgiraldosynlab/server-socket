@@ -135,7 +135,7 @@ try:
     #print(msh.msh_4.value)
     #print(msh.msh_5.value)
 
-    '''
+
     ordens = m.orc
     for orc in ordens: 
         print(orc.value)
@@ -143,11 +143,11 @@ try:
     det = m.obr
     for item in det:
         print(item.obr_4.obr_4_1)
-    '''
+
 except Exception as e: 
     print(e)
 
-exit(1)
+
 '''
 sc = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 sc.connect(('localhost', 8000))
@@ -160,6 +160,7 @@ print(str(resp.decode()))
 sc.close()
 '''
 
+"""
 for i in range(100):
     sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sc.connect(('localhost', 8000))
@@ -178,3 +179,5 @@ if dato.strip() == 'close':
     resp = sc.recv(1024)
     print(str(resp.decode()))
     sc.close()
+    
+    """
