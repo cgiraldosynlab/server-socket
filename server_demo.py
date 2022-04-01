@@ -29,7 +29,7 @@ try:
             client.send('Hola te saludo desde el servidor'.encode())
 
             try:
-                client.shutdown()
+                client.shutdown(__how=socket.SHUT_RD)
                 client.close()
             except Exception as e:
                 print(e)
