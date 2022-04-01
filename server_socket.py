@@ -229,7 +229,7 @@ class Server:
                                 #client.sendall(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
                                 try:
                                     client.close()
-                                except
+                                except:
                                     pass
                                 #print('llegue al final')
                             except Exception as e:
