@@ -26,6 +26,86 @@ WINSISLAB
 ambas se ingresan para un no. de autorización.
 '''
 
+'''
+    def open(self):
+        try:
+            fecha = datetime.datetime.now()
+            print(f'[x] {fecha} | host: {self.__HOST}:{self.__PORT} | servidor iniciado')
+            while True:
+                try:
+                    fecha = datetime.datetime.now()
+
+                    # capturar información del cliente
+                    client, addr = self.__SC.accept()
+                    try:                        
+                        client.setblocking(False)
+                        self.__listClient.append(client)
+                        print(f'[x] {fecha} | client: {addr[0]}:{addr[1]} ')
+                    except:
+                        pass
+
+                    # recibir mensaje                    
+                    resp = self.procesar_mensaje(client=client, addr=addr)
+                    if resp and resp.decode() != '':
+                        if resp.decode() == 'close':
+                            print(f'[x] {fecha} | client: {addr[0]} | port: {str(addr[1])} | petición de cerrado ejecutandose')
+                            client.send('el servidor se cerrara por mantenimiento'.encode())
+                            self.close()
+                            break
+                        elif resp.decode() == 'delete-log':
+                            Database().delete('DELETE FROM log.log_app WHERE l_id > %s', (0, ))
+                            client.send('log eliminado con éxito'.encode())
+                        else:
+                            try:
+                                LogApp('python', resp.decode())
+                                client.send('te saludo desde el servidor'.encode())
+                            except Exception as err:
+                                LogApp('socket', f'error al procesar el mensaje socket')
+                                client.send(f'error - {err}'.encode())                                
+                    else: 
+                        ack = ACK(control_id=-1, message='el mensaje no puede ser vacio')                        
+                        client.send(ack.get_ack().encode())                    
+                except Exception as err:
+                    print(f'error al procesar el mensaje [{err}]')                    
+                finally:
+                    if client:
+                        client.close()        
+        except Exception as e:
+            pass
+
+    def procesar_mensaje(self, **kwargs):
+        try:
+            msg = b''
+            if kwargs['client']:
+                #bloqueo = kwargs['client'].getblocking()
+                bloqueo = False
+                #kwargs['client'].setblocking(False)
+                while True:
+                    try:
+                        data = kwargs['client'].recv(self.__BUFFER_MAX)
+                        if not data: 
+                            msg = b'close'
+                            kwargs['client'].setblocking(False)
+                            break
+
+                        msg += data                        
+                        # salir del bucle si no hay mas datos para leer
+                        if len(msg) < self.__BUFFER_MAX:
+                            kwargs['client'].setblocking(False)
+                            break                    
+                    except Exception as e:
+                        LogApp('socket', f'1-error al procesar el mensaje - {e}')
+                        msg = f'1-error al procesar el mensaje {e}'.encode()
+                        break                    
+                else: 
+                    #kwargs['client'].setblocking(bloqueo)
+                    pass
+            return msg
+        except Exception as e:
+            print('error al procesar el mensaje', e)
+
+    '''
+
 class Server:
 
     # definir properties
@@ -37,7 +117,7 @@ class Server:
     __SC = None
     __CANCEL = False
     __CHAR_IN = chr(11)
-    __CHAR_OUT = chr(28)
+    __CHAR_OUT = f'{chr(28)}{chr(13)}'
     __FOLDER_PENDIENTE = 'pendiente'
     __FOLDER_PROCESADO = 'procesado'
 
@@ -67,6 +147,7 @@ class Server:
         print(f'[x] - {fecha} | servidor iniciado | {self.__HOST}:{self.__PORT} ')
         while True and (not self.__CANCEL):
             try:
+                resp = ''
                 is_response = False
                 fecha = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
@@ -158,8 +239,6 @@ class Server:
                     except Exception as e:
                         print('error', e)
             except Exception as e:
-                #resp = 'lo sentimos el mensaje no pudo ser procesado'
-                #client.send(f'{resp} - error [{e}]'.encode())
                 LogSys().error(f'error [{e}]')
                 if is_response == False:
                     client.send(f'{resp} - error [{e}]'.encode())
@@ -171,86 +250,6 @@ class Server:
                 gc.collect()
 
         self.close()
-
-    '''
-    def open(self):
-        try:
-            fecha = datetime.datetime.now()
-            print(f'[x] {fecha} | host: {self.__HOST}:{self.__PORT} | servidor iniciado')
-            while True:
-                try:
-                    fecha = datetime.datetime.now()
-
-                    # capturar información del cliente
-                    client, addr = self.__SC.accept()
-                    try:                        
-                        client.setblocking(False)
-                        self.__listClient.append(client)
-                        print(f'[x] {fecha} | client: {addr[0]}:{addr[1]} ')
-                    except:
-                        pass
-
-                    # recibir mensaje                    
-                    resp = self.procesar_mensaje(client=client, addr=addr)
-                    if resp and resp.decode() != '':
-                        if resp.decode() == 'close':
-                            print(f'[x] {fecha} | client: {addr[0]} | port: {str(addr[1])} | petición de cerrado ejecutandose')
-                            client.send('el servidor se cerrara por mantenimiento'.encode())
-                            self.close()
-                            break
-                        elif resp.decode() == 'delete-log':
-                            Database().delete('DELETE FROM log.log_app WHERE l_id > %s', (0, ))
-                            client.send('log eliminado con éxito'.encode())
-                        else:
-                            try:
-                                LogApp('python', resp.decode())
-                                client.send('te saludo desde el servidor'.encode())
-                            except Exception as err:
-                                LogApp('socket', f'error al procesar el mensaje socket')
-                                client.send(f'error - {err}'.encode())                                
-                    else: 
-                        ack = ACK(control_id=-1, message='el mensaje no puede ser vacio')                        
-                        client.send(ack.get_ack().encode())                    
-                except Exception as err:
-                    print(f'error al procesar el mensaje [{err}]')                    
-                finally:
-                    if client:
-                        client.close()        
-        except Exception as e:
-            pass
-
-    def procesar_mensaje(self, **kwargs):
-        try:
-            msg = b''
-            if kwargs['client']:
-                #bloqueo = kwargs['client'].getblocking()
-                bloqueo = False
-                #kwargs['client'].setblocking(False)
-                while True:
-                    try:
-                        data = kwargs['client'].recv(self.__BUFFER_MAX)
-                        if not data: 
-                            msg = b'close'
-                            kwargs['client'].setblocking(False)
-                            break
-
-                        msg += data                        
-                        # salir del bucle si no hay mas datos para leer
-                        if len(msg) < self.__BUFFER_MAX:
-                            kwargs['client'].setblocking(False)
-                            break                    
-                    except Exception as e:
-                        LogApp('socket', f'1-error al procesar el mensaje - {e}')
-                        msg = f'1-error al procesar el mensaje {e}'.encode()
-                        break                    
-                else: 
-                    #kwargs['client'].setblocking(bloqueo)
-                    pass
-            return msg
-        except Exception as e:
-            print('error al procesar el mensaje', e)
-
-    '''
 
     def listen(self, limit=None) -> bool:
         try:

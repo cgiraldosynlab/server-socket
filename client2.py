@@ -78,7 +78,6 @@ try:
 except:
     cant = 1
 
-https://github.com/cgiraldosynlab/server-socket.git
 #cs.enviar('delete-logs')
 for item in range(cant):
     cs.enviar()
