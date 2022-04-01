@@ -197,7 +197,6 @@ class Server:
                                 LogApp(codigo='python', mensaje=mensaje_in)
                                 file.write(mensaje_in)
                                 file.close()
-                                print('guarde el mensaje')
 
                                 ''' validar si es un mensaje HL7 '''
                                 if not hl7.ishl7(mensaje_in):
@@ -226,10 +225,10 @@ class Server:
 
                                     msa.message = 'mensaje procesado con éxito'
                                     resp.add_msa(msa.get_str())
-                                    client.send(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
-                                    client.sendall(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
-                                    print('llegue al final')
 
+                                client.send(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
+                                client.sendall(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
+                                print('llegue al final')
                                 client.close()
                             except Exception as e:
                                 print(e)
