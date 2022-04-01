@@ -143,6 +143,7 @@ class Server:
             LogSys().error('python', f'error inicializando el servicio socket [{e}]')
 
     def acceptClient(self):
+
         fecha = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print(f'[x] - {fecha} | servidor iniciado | {self.__HOST}:{self.__PORT} ')
         while True and (not self.__CANCEL):
@@ -166,14 +167,16 @@ class Server:
                 if not data: 
                     client.send('error - el mensaje no puede ser vacio'.encode())
                 else:
+
                     try:
-                        if data.decode() == 'close':
+                        mensaje = data.decode(encoding='utf-8').replace(self.__CHAR_IN, '').replace(self.__CHAR_OUT, '')
+                        if mensaje == 'close':
                             # mensaje que permite detener el servidor de socket
                             self.__CANCEL = True
                             client.send(f'-- data: {data.decode()}'.encode())
                             print(f'[x] - {fecha} | servidor cerrado ')
                             break
-                        elif data.decode() == 'delete-logs':
+                        elif mensaje == 'delete-logs':
                             # mensaje que permite borrar los logs de la base de datos
                             Database().delete('delete from log.log_app WHERE l_id > %s', (0,))
                             Database().delete('delete from log.log_out where lout_id > %s', (0,))
@@ -188,7 +191,7 @@ class Server:
                                 msa = MSA('')
 
                                 ''' recepciónar mensaje '''
-                                mensaje_in = data.decode(encoding='utf-8').replace(self.__CHAR_IN, '').replace(self.__CHAR_OUT, '')
+                                mensaje_in = mensaje
                                 LogApp(codigo='python', mensaje=mensaje_in)
                                 file.write(mensaje_in)
                                 file.close()
@@ -239,6 +242,7 @@ class Server:
                                     is_response = True
                     except Exception as e:
                         print('error', e)
+
             except Exception as e:
                 LogSys().error(f'error [{e}]')
                 if is_response == False:
@@ -246,7 +250,8 @@ class Server:
             finally:
                 if client is not None:
                     client.close()
-                if (self.__CANCEL): 
+                if (self.__CANCEL == False):
+                    print(f'[x] {fecha} | cerrar listening ')
                     break
                 gc.collect()
 
