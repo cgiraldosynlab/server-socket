@@ -28,7 +28,7 @@ class SubirResultados(Database):
                      , resout_ipserver as ipserver
                      , resout_contenido as mensaje
                   from web_services.resultado_out ro
-                 where ro.resout_fecha_in >= CURRENT_DATE -- 30
+                 where ro.resout_fecha_in >= CURRENT_DATE-10
                    and ro.resout_usuario_ws = 'HIUSJ'
                    and ro.resout_publicado  = 1
                    and ro.resout_solicitado = 0
