@@ -207,7 +207,6 @@ class Server:
                                     lines = open(f'files/{self.__FOLDER_PENDIENTE}/{name_file}.hl7', 'r').readlines()
                                     msj = '\r'.join(lines)
                                     h = hl7.parse(lines=msj, encoding='utf-8')
-                                    print('información cargada')
 
                                     ''' procesar mensaje HL7 '''
                                     try:
@@ -231,7 +230,6 @@ class Server:
                                     client.close()
                                 except:
                                     pass
-                                #print('llegue al final')
                             except Exception as e:
                                 print(f'[x] {fecha} | error: {e} ')
                                 msa = MSA('')

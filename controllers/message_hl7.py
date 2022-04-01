@@ -64,7 +64,7 @@ class MSA:
 
     def __init__(self, control_id):
         try:
-            self.acknowledgment_code = 1
+            self.acknowledgment_code = 'AA'
             self.message_control_id = control_id
             self.message = ''
             self.sequence_number = 0
