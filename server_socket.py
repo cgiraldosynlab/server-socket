@@ -147,6 +147,7 @@ class Server:
         fecha = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print(f'[x] - {fecha} | servidor iniciado | {self.__HOST}:{self.__PORT} ')
         while True:
+
             try:
                 resp = ''
                 is_response = False
@@ -155,6 +156,7 @@ class Server:
                 # obtener información del cliente
                 (client, addr) = self.__SC.accept()
                 __client_str = f'{addr[0]:{addr[1]}}'
+
                 try:
                     pass
                     #client.setblocking(False)
@@ -162,6 +164,7 @@ class Server:
                     pass
 
                 print(f'[x] - {fecha} | cliente conectado | info: {addr[0]}:{addr[1]}')
+
                 # recibir mensaje
                 data = client.recv(self.__BUFFER_MAX)
                 if not data: 
@@ -245,14 +248,12 @@ class Server:
 
             except Exception as e:
                 LogSys().error(f'error [{e}]')
-                if is_response == False:
+                if is_response == False and client is not None:
                     client.send(f'{resp} - error [{e}]'.encode())
             finally:
                 if client is not None:
                     client.close()
                 gc.collect()
-
-        self.close()
 
     def listen(self, limit=None) -> bool:
         try:
