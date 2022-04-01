@@ -184,7 +184,6 @@ class Server:
                             Database().delete('delete from log.log_app WHERE l_id > %s', (0,))
                             Database().delete('delete from log.log_out where lout_id > %s', (0,))
                             client.send(f'{data.decode()}'.encode())
-                            pass
                         else:
                             # recibe cualquier mensaje y debe procesar en formato HL7
                             name_file = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') + '_' + str(random.randrange(0, 100000))
@@ -226,13 +225,16 @@ class Server:
 
                                 msa.message = 'mensaje procesado con éxito'
                                 resp.add_msa(msa.get_str())
+                                client.send(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
+                                client.close()
                             except Exception as e:
-                                # resp = f'error al procesar el mensaje [{e}]'
+                                print(e)
                                 msa = MSA('')
                                 msa.message = f'error: {e}'
                                 if isinstance(resp, ACK):
                                     resp.add_msa(msa.get_str())
-
+                                    if client:
+                                        client.send(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
                                 if resp is not None:
                                     LogSys().error('socket', f'{resp.get_str()} - error [{e}]')
                             finally:
@@ -248,11 +250,7 @@ class Server:
 
             except Exception as e:
                 LogSys().error(f'error [{e}]')
-                if is_response == False and client is not None:
-                    client.send(f'{resp} - error [{e}]'.encode())
             finally:
-                if client is not None:
-                    client.close()
                 gc.collect()
 
     def listen(self, limit=None) -> bool:
