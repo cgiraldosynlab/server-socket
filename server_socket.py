@@ -146,7 +146,7 @@ class Server:
 
         fecha = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print(f'[x] - {fecha} | servidor iniciado | {self.__HOST}:{self.__PORT} ')
-        while True and (not self.__CANCEL):
+        while True:
             try:
                 resp = ''
                 is_response = False
@@ -250,9 +250,6 @@ class Server:
             finally:
                 if client is not None:
                     client.close()
-                if (self.__CANCEL == True):
-                    print(f'[x] {fecha} | cerrar listening ')
-                    break
                 gc.collect()
 
         self.close()
