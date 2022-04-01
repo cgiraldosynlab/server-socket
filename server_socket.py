@@ -250,7 +250,7 @@ class Server:
             finally:
                 if client is not None:
                     client.close()
-                if (self.__CANCEL == False):
+                if (self.__CANCEL == True):
                     print(f'[x] {fecha} | cerrar listening ')
                     break
                 gc.collect()
