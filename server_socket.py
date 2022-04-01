@@ -202,7 +202,6 @@ class Server:
                                 if not hl7.ishl7(mensaje_in):
                                     msa.message = 'error al formatear el mensaje HL7'
                                     resp.add_msa(msa.get_str())
-                                    print('no es un HL7')
                                 else:
                                     ''' load file '''
                                     lines = open(f'files/{self.__FOLDER_PENDIENTE}/{name_file}.hl7', 'r').readlines()
@@ -227,8 +226,7 @@ class Server:
                                     resp.add_msa(msa.get_str())
 
                                 client.send(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
-                                client.sendall(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
-                                client.close()
+                                #client.sendall(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
                                 print('llegue al final')
                             except Exception as e:
                                 print(f'[x] {fecha} | error: {e} ')
