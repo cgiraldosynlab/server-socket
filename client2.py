@@ -43,7 +43,7 @@ class ClientSocket:
                 if self.__MENSAJE and self.__MENSAJE is not None:
                     if resp:
                         fecha = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                        print(f'[x] {fecha} | response: {resp.decode().replace(chr(11),"").replace(chr(28),"")}')
+                        print(f'[x] {fecha} | response: {resp.decode().replace(chr(11), "").replace(chr(28), "")}')
                         try:
                             ruta = os.path.dirname(__file__) + '/files'
                             f = open(f'{ruta}/escribir_{str(random.randrange(0, 100000))}.txt', 'w')

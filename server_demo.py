@@ -7,6 +7,8 @@ try:
     __BUFFER_MAX__ = 65507
     __HOST__ = 'localhost'
     __PORT__ = 8000
+    __CHAR_IN = chr(11)
+    __CHAR_OUT = f'{chr(28)}{chr(13)}'
 
     sc = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     sc.bind((__HOST__, __PORT__))
@@ -21,15 +23,15 @@ try:
             data = client.recv(__BUFFER_MAX__)
             print(f'[x] {fecha} | cliente conectado | {addr[0]}:{addr[1]}')
 
-            if data.decode() == 'close':
+            datos = data.replace(__CHAR_IN, '') .replace(__CHAR_OUT, '').strip()
+            if datos == 'close':
                 break
             else:
-                print('mensaje recibido', len(data.decode()))
+                print('[x] mensaje recibido', len(data.decode()))
 
-            client.send('Hola te saludo desde el servidor'.encode())
-
+            client.send(f'{__CHAR_IN}[x] hola te saludo desde el servidor{__CHAR_OUT}'.encode())
             try:
-                client.shutdown(__how=socket.SHUT_RD)
+                client.shutdown(__how=socket.SHUT_WR)
                 client.close()
             except Exception as e:
                 print(e)
