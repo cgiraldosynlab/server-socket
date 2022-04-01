@@ -36,6 +36,7 @@ class Database:
             rows = self.qry.execute('SELECT 1 + 1')
             if rows: 
                 self.__ISCONNECT = True
+                print('[x] conectado con la base de datos')
             ##print('connection suceful')
         except Exception as e:
             self.__ISCONNECT = False

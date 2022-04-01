@@ -23,6 +23,7 @@ class SubirResultados(Database):
 
     def send(self):
         try:
+            print('[x] buscando resultados')
             rows = super().query('''
                 select resout_id as id
                      , resout_ipserver as ipserver
