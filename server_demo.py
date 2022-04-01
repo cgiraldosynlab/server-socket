@@ -27,6 +27,7 @@ try:
                 print('mensaje recibido', len(data.decode()))
 
             client.send('Hola te saludo desde el servidor'.encode())
+
             try:
                 client.shutdown()
                 client.close()
