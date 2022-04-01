@@ -227,7 +227,11 @@ class Server:
 
                                 client.send(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
                                 #client.sendall(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
-                                print('llegue al final')
+                                try:
+                                    client.close()
+                                except
+                                    pass
+                                #print('llegue al final')
                             except Exception as e:
                                 print(f'[x] {fecha} | error: {e} ')
                                 msa = MSA('')
