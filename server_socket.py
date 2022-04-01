@@ -204,33 +204,31 @@ class Server:
                                     msa.message = 'error al formatear el mensaje HL7'
                                     resp.add_msa(msa.get_str())
                                     print('no es un HL7')
-                                    return
+                                else:
+                                    ''' load file '''
+                                    lines = open(f'files/{self.__FOLDER_PENDIENTE}/{name_file}.hl7', 'r').readlines()
+                                    msj = '\r'.join(lines)
+                                    h = hl7.parse(lines=msj, encoding='utf-8')
+                                    print('información cargada')
 
-                                ''' load file '''
-                                lines = open(f'files/{self.__FOLDER_PENDIENTE}/{name_file}.hl7', 'r').readlines()
-                                msj = '\r'.join(lines)
-                                h = hl7.parse(lines=msj, encoding='utf-8')
-                                print('información cargada')
+                                    ''' procesar mensaje HL7 '''
+                                    try:
+                                        control_id = h['MSH'][0][10]
+                                        msa.message_control_id = control_id
+                                    except Exception as e:
+                                        print('control_id:', e)
 
-                                ''' procesar mensaje HL7 '''
-                                try:
-                                    control_id = h['MSH'][0][10]
-                                    msa.message_control_id = control_id
-                                except Exception as e:
-                                    print('control_id:', e)
+                                    try:
+                                        version = h['MSH'][0][12]
+                                        resp.version(version)
+                                    except Exception as e:
+                                        print('version:', e)
 
-                                try:
-                                    version = h['MSH'][0][12]
-                                    resp.version(version)
-                                except Exception as e:
-                                    print('version:', e)
-
-                                msa.message = 'mensaje procesado con éxito'
-                                resp.add_msa(msa.get_str())
-                                client.send(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
-                                client.sendall(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
-
-                                print('llegue al final')
+                                    msa.message = 'mensaje procesado con éxito'
+                                    resp.add_msa(msa.get_str())
+                                    client.send(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
+                                    client.sendall(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
+                                    print('llegue al final')
 
                                 client.close()
                             except Exception as e:
