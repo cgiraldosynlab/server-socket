@@ -9,6 +9,7 @@ from models.log import (LogIn, LogApp)
 from config.db import Database
 from helpers.logger import LogSys
 from controllers.message_hl7 import MSH, MSA, ACK
+from models.data_sqlite import Paciente, Ubicacion, Servicio, Empresa, TipoDocumento, MensajeIn, Orden
 
 '''
 MAC/LINUX
@@ -208,6 +209,251 @@ class Server:
                                     msj = '\r'.join(lines)
                                     h = hl7.parse(lines=msj, encoding='utf-8')
 
+                                    try:
+                                        mensaje = MensajeIn(
+                                            buscar=False,
+                                            control_id=h['MSH'][0][10][0],
+                                            sender=h['MSH'][0][3][0],
+                                            sender_facility=h['MSH'][0][4][0],
+                                            reception=h['MSH'][0][5][0],
+                                            reception_facility=h['MSH'][0][6][0],
+                                            type='ORM^O01',
+                                            content=mensaje_in,
+                                        )
+
+                                        if mensaje.isFound:
+                                            ''' processing patient '''
+                                            '''
+                                            [
+                                                [
+                                                    ['PID'],            # 0
+                                                    ['1'],              # 1
+                                                    ['RC1022449020'],   # 2
+                                                    ['2050082'],        # 3
+                                                    [[['1022449020'], ['RC ']]], # 4
+                                                    [[['PULIDO COMAS'], ['ISRAEL ALEJANDRO']]], # 5
+                                                    [''],                       # 6
+                                                    ['20190527000000'],         # 7
+                                                    ['M'],                      # 8
+                                                    [[['PULIDO'], ['COMAS']]],  # 9
+                                                    [''],                       # 10
+                                                    [[['KRA 16 82-95 VEREDA LAS MERCEDES'], [''], ['BOGOTA D.C.'], [''], ['11001']]], # 11
+                                                    [''],                       # 12
+                                                    ['3144452593'],             # 13
+                                                    [[[''], [''], [''], ['Sincorreofe@hospitalinfantildesanjose.org.co']]], # 14
+                                                    [''],                       # 15
+                                                    ['M\n']                     # 16
+                                                ]
+                                            ]
+                                            '''
+
+                                            dicTipoDoc = {
+                                                'codigo': h['PID'][0][4][0][1][0],
+                                                'nombre': h['PID'][0][4][0][1][0]
+                                            }
+
+                                            typeDoc = TipoDocumento(dicTipoDoc.get('codigo'))
+                                            if not typeDoc.get_isfound():
+                                                print('entre')
+                                                typeDoc.set_name(dicTipoDoc.get('nombre'))
+                                                typeDoc.set_active(True)
+                                                typeDoc.guardar()
+
+                                            last_name = h['PID'][0][5][0][0]
+                                            name_1, name_2 = '', ''
+                                            name = h['PID'][0][5][0][1]
+                                            ape_1, ape_2 = '', ''
+
+                                            if len(str(last_name).split(' ')) > 1 and len(str(last_name).split(' ')) == 2:
+                                                ape_1 = str(last_name).split(' ')[0]
+                                                ape_2 = str(last_name).split(' ')[1]
+                                            else:
+                                                ape_1 = name
+
+                                            if len(str(name).split(' ')) > 1 and len(str(name).split(' ')) == 2:
+                                                name_1 = str(name).split(' ')[0]
+                                                name_2 = str(name).split(' ')[1]
+                                            else:
+                                                name_1 = last_name
+
+                                            ''' tratar fechas '''
+                                            birth_date = h['PID'][0][7][0]
+                                            fecha = f'{birth_date[0:4]}-{birth_date[4:6]}-{birth_date[6:8]}'
+                                            birth_date = datetime.datetime.strptime(fecha, '%Y-%m-%d')
+
+                                            dicPatient = {
+                                                'typeId': typeDoc.get_id(),
+                                                'numberId': h['PID'][0][4][0][0][0],
+                                                'first_name': name_1,
+                                                'second_name': name_2,
+                                                'last_name': ape_1,
+                                                'middle_name': ape_2,
+                                                'birth_date': birth_date,
+                                                'gender': h['PID'][0][8][0][0],
+                                                'expedition': datetime.datetime.now().strftime('%Y-%m-%d'),
+                                                'blood_type': '',
+                                                'address': h['PID'][0][11][0][0][0],
+                                                'phone': h['PID'][0][13][0],
+                                                'cellphone': h['PID'][0][13][0],
+                                                'email': h['PID'][0][14][0][3][0],
+                                                'active': True
+                                            }
+                                            patient = Paciente(typeDoc, dicPatient.get('numberId'))
+                                            if not patient.isFound:
+                                                patient.guardar(
+                                                    typeId=dicPatient.get('typeId'),
+                                                    numberId=dicPatient.get('numberId'),
+                                                    first_name=dicPatient.get('first_name'),
+                                                    second_name=dicPatient.get('second_name'),
+                                                    last_name=dicPatient.get('last_name'),
+                                                    middle_name=dicPatient.get('middle_name'),
+                                                    birth_date=dicPatient.get('birth_date'),
+                                                    gender=dicPatient.get('gender'),
+                                                    expedition=dicPatient.get('expedition'),
+                                                    blood_type=dicPatient.get('blood_type'),
+                                                    address=dicPatient.get('address'),
+                                                    phone=dicPatient.get('phone'),
+                                                    cellphone=dicPatient.get('cellphone'),
+                                                    email=dicPatient.get('email'),
+                                                    active=True
+                                                )
+
+                                            ''' processing segment PV1 '''
+                                            '''
+                                            [[
+                                                ['PV1'],                # 0
+                                                ['1'],                  # 1
+                                                ['E'],                  # 2
+                                                [[['UC04'], ['UP03']]], # 3
+                                                [''],           # 4
+                                                [''],           # 5
+                                                [''],           # 6
+                                                [''],           # 7
+                                                [''],           # 8
+                                                [''],           # 9
+                                                [''],           # 10
+                                                [''],           # 11
+                                                [''],           # 12
+                                                [''],           # 13
+                                                [''],           # 14
+                                                [''],           # 15
+                                                [''],           # 16
+                                                [''],           # 17
+                                                [''],           # 18
+                                                ['3591193'],    # 19
+                                                ['E'],          # 20
+                                            ]]
+                                            '''
+
+                                            PV1 = h['PV1'][0]
+
+                                            location_cod = PV1[3][0][0]
+                                            bed_cod = PV1[3][0][1][0]
+
+                                            location = Ubicacion(codigo=str(location_cod).strip())
+                                            if not location.isFound:
+                                                location.name = location_cod
+                                                location.isActive = True
+                                                location.isDelete = False
+                                                location.guardar()
+
+                                            service = Servicio('NA')
+                                            if not service.isFound:
+                                                service.code = 'NA'
+                                                service.name = 'NO APLICA'
+                                                service.isActive = True
+                                                service.guardar()
+
+                                            ''' processing segment IN1 '''
+                                            '''
+                                            [[
+                                                ['IN1'],                                # 0
+                                                ['1'],                                  # 1
+                                                ['E'],                                  # 2
+                                                ['IPS066'],                             # 3
+                                                ['UNION TEMPORAL SERVISALUD SAN JOSE'], # 4
+                                                [''],                                   # 5
+                                                [''],                                   # 6
+                                                [''],                                   # 7
+                                                ['02'],                                 # 8
+                                                ['INST. PRESTADORAS DE SALUD IPS\n']    # 9
+                                            ]]
+                                            '''
+                                            IN1 = h['IN1']
+                                            type_pac = IN1[0][2][0]
+                                            company_cod = IN1[0][3]
+                                            company_nom = IN1[0][4]
+                                            entity_code = IN1[0][8][0]
+                                            entity_nom = IN1[0][9]
+
+                                            company = Empresa(str(company_cod))
+                                            if not company.isFound:
+                                                company.name = str(company_nom).upper()
+                                                company.isActive = True
+                                                company.isDelete = False
+                                                company.guardar()
+
+                                            #print(type_pac, company_cod, company_nom, entity_code, entity_nom)
+                                            ''' processing order'''
+                                            '''
+                                            [
+                                                [
+                                                    ['ORC'],                # 0
+                                                    ['NW'],                 # 1
+                                                    ['LB-15878727-6'],      # 2
+                                                    [''],                   # 3
+                                                    ['671354'],             # 4
+                                                    ['SC'],                 # 5
+                                                    [''],                   # 6
+                                                    [[[''], [''], [''], ['20220309201139'], [''], ['3']]], # 7 
+                                                    [''],                   # 8
+                                                    [''],                   # 9
+                                                    [''],                   # 10
+                                                    [''],                   # 11
+                                                    [[['hectoro'], ['ORTIZ SANDOVAL'], ['HECTOR EDUARDO'], [''], [''], [''], [''], [''], [''], [''], ['13926430'], [''], ['56'], [''], ['CC13926430\n']]]
+                                                ]
+                                            ]
+                                            '''
+
+                                            # ORC|NW|LB-15878727-6||671354|SC||^^^20220309201139^^3|||||hectoro^ORTIZ SANDOVAL^HECTOR EDUARDO^^^^^^^^13926430^^56^^CC13926430
+                                            ORC = h['ORC'][0]
+                                            order_number = ORC[2][0]
+                                            order_number = order_number.split('-')[0] + '-' + order_number.split('-')[1]
+                                            #print(f'Orden: {ORC[2]} - MessageId: {ORC[4]} - fecha: {ORC[7]}')
+
+                                            dicOrden = {
+                                                'number': order_number,
+                                                'date': datetime.datetime.now().strftime('%Y-%m-%d'),
+                                                'time': datetime.datetime.now().strftime('%H:%M:%S'),
+                                                'messageId': mensaje.id,
+                                                'patientId': patient.id,
+                                                'locationId': location.id,
+                                                'serviceId': 'NA',
+                                                'companyId': company.id,
+                                                'priority': 0,
+                                                'bed': bed_cod,
+                                                'type': type_pac,
+                                                'entity': entity_code
+                                            }
+                                            order = Orden(
+                                                number=dicOrden.get('number'),
+                                                date=dicOrden.get('date'),
+                                                time=dicOrden.get('date'),
+                                                messageId=dicOrden.get('time'),
+                                                patientId=dicOrden.get('patientId'),
+                                                locationId=dicOrden.get('locationId'),
+                                                serviceId=dicOrden.get('serviceId'),
+                                                companyId=dicOrden.get('companyId'),
+                                                priority=dicOrden.get('priority'),
+                                                bed=dicOrden.get('bed'),
+                                                type=dicOrden.get('type'),
+                                                entity=dicOrden.get('entity')
+                                            )
+
+                                            ''' processing test '''
+                                    except Exception as e:
+                                        print(f'[x] - {fecha} | ERROR | error: {e}')
+
                                     ''' procesar mensaje HL7 '''
                                     try:
                                         control_id = h['MSH'][0][10]
@@ -224,14 +470,18 @@ class Server:
                                     msa.message = 'mensaje procesado con éxito'
                                     resp.add_msa(msa.get_str())
 
+                                    if mensaje:
+                                        mensaje.response = resp.get_str()
+                                        mensaje.set_response()
+
                                 client.send(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
-                                #client.sendall(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
+                                #client.send(f'{self.__CHAR_IN}{mensaje.response}{self.__CHAR_OUT}'.encode())
                                 try:
                                     client.close()
                                 except:
                                     pass
                             except Exception as e:
-                                print(f'[x] {fecha} | error: {e} ')
+                                print(f'[x] {fecha} | ERROR | error: {e} ')
                                 msa = MSA('')
                                 msa.message = f'error: {e}'
                                 if isinstance(resp, ACK):

@@ -58,6 +58,7 @@ import gc
 from config.db import Database
 from server_socket import Server
 from helpers.logger import LogSys
+from models.data_sqlite import Usuario, TipoDocumento, Paciente, Ubicacion, Servicio, MensajeIn, Orden
 
 try:
     ruta = f'{os.path.dirname(__file__)}/sql_update.sql'
@@ -93,6 +94,7 @@ try:
         server.listen()
         server.acceptClient()
 except Exception as e:
-    print('error al ejecutar el servidor', e)
+    #print('error al ejecutar el servidor', e)
+    print(e)
 finally:
     gc.collect()

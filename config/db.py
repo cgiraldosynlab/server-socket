@@ -1,4 +1,5 @@
 import os
+import sqlite3
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
@@ -37,7 +38,6 @@ class Database:
             if rows: 
                 self.__ISCONNECT = True
                 print('[x] conectado con la base de datos')
-            ##print('connection suceful')
         except Exception as e:
             self.__ISCONNECT = False
             print('error:', e)
@@ -106,7 +106,28 @@ class Database:
             self.conn.rollback()
             print('error:', e)
 
+class SQLite:
 
-if __name__ == '__main__':
-    db = Database()
-    print(db)
+    def __init__(self):
+        try:
+            ruta_db = os.path.dirname(__file__)
+            self.conn = sqlite3.connect(f'{ruta_db}/synlab.db')
+            self.conn.row_factory = sqlite3.Row
+            self.cursor = self.conn.cursor()
+
+            # crear database
+            if os.path.exists(f'{ruta_db}/backup.sql'):
+                f = open(f'{ruta_db}/backup.sql')
+                try:
+                    self.cursor.execute('BEGIN TRANSACTION;')
+                    scripts = f.read().split(';')
+                    for script in scripts:
+                        self.cursor.execute(script)
+                    self.cursor.execute('COMMIT;')
+                    f.close()
+                    os.rename(f'{ruta_db}/backup.sql', f'{ruta_db}/backup_ok.sql')
+                except Exception as e:
+                    self.cursor.execute('ROLLBACK;')
+                    print('error al restaurar la base de datos', e)
+        except Exception as e:
+            print('error:', e)
