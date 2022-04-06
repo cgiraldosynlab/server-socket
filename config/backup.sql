@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS t005_services(
 
 INSERT INTO t005_services (f005_code, f005_name, f005_active)
 VALUES
+('NA', 'NO APLICA', TRUE),
 ('23', 'HEMODINAMIA', TRUE),
 ('24', 'RADIOLOGIA', TRUE),
 ('27', 'LABORATORIO CLINICO ESPECIALIZ', TRUE),
@@ -146,7 +147,7 @@ VALUES
 CREATE TABLE IF NOT EXISTS t006_companies (
     f006_id        INTEGER PRIMARY KEY AUTOINCREMENT,
     f006_create_at DATETIME DEFAULT (datetime('now', 'localtime')),
-    f006_code      VARCHAR(50 ) NOT NULL,
+    f006_code      VARCHAR(50 ) NOT NULL UNIQUE,
     f006_name      VARCHAR(50 ) NOT NULL,
     f006_active    BOOLEAN DEFAULT FALSE,
     f006_delete    BOOLEAN DEFAULT FALSE,
