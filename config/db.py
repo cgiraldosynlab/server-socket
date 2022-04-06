@@ -131,3 +131,6 @@ class SQLite:
                     print('error al restaurar la base de datos', e)
         except Exception as e:
             print('error:', e)
+
+if __name__ == '__main__':
+    sql = SQLite()

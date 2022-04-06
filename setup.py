@@ -55,7 +55,7 @@ setup(
 
 import os
 import gc
-from config.db import Database
+from config.db import Database, SQLite
 from server_socket import Server
 from helpers.logger import LogSys
 from models.data_sqlite import Usuario, TipoDocumento, Paciente, Ubicacion, Servicio, MensajeIn, Orden
@@ -76,6 +76,9 @@ try:
                 print(f'{cant} de {len(lines)}')
     else:
         value = input('ingresar un valor a enviar para el servidor: ')
+
+
+    bd_create = SQLite()
 except:
     print('error')
 
