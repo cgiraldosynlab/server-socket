@@ -149,7 +149,7 @@ class Server:
     def acceptClient(self):
 
         fecha = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        print(f'[x] - {fecha} | servidor iniciado | {self.__HOST}:{self.__PORT} ')
+        print(f'[x] - {fecha} | INFO | servidor iniciado | {self.__HOST}:{self.__PORT} ')
         while True:
 
             try:
@@ -167,7 +167,7 @@ class Server:
                 except:
                     pass
 
-                print(f'[x] - {fecha} | cliente conectado | info: {addr[0]}:{addr[1]}')
+                print(f'[x] - {fecha} | CONNECT | cliente conectado | info: {addr[0]}:{addr[1]}')
 
                 # recibir mensaje
                 data = client.recv(self.__BUFFER_MAX)
@@ -176,12 +176,13 @@ class Server:
                 else:
 
                     try:
+                        print(f'[x] - {fecha} | INFO | recibiendo mensaje | info: {addr[0]}:{addr[1]}')
                         mensaje = data.decode(encoding='utf-8').replace(self.__CHAR_IN, '').replace(self.__CHAR_OUT, '')
                         if mensaje == 'close':
                             # mensaje que permite detener el servidor de socket
                             self.__CANCEL = True
                             client.send(f'-- data: {data.decode()}'.encode())
-                            print(f'[x] - {fecha} | servidor cerrado ')
+                            print(f'[x] - {fecha} | INFO | servidor cerrado ')
                             break
                         elif mensaje == 'delete-logs':
                             # mensaje que permite borrar los logs de la base de datos
@@ -207,11 +208,11 @@ class Server:
                                     msa.message = 'error al formatear el mensaje HL7'
                                     resp.add_msa(msa.get_str())
                                 else:
+                                    print(f'[x] - {fecha} | INFO | procesando mensaje | info: {addr[0]}:{addr[1]}')
                                     ''' load file '''
                                     lines = open(f'files/{self.__FOLDER_PENDIENTE}/{name_file}.hl7', 'r').readlines()
                                     msj = '\r'.join(lines)
                                     h = hl7.parse(lines=msj, encoding='utf-8')
-
                                     try:
                                         mensaje = MensajeIn(
                                             buscar=False,
@@ -257,7 +258,6 @@ class Server:
 
                                             typeDoc = TipoDocumento(dicTipoDoc.get('codigo'))
                                             if not typeDoc.get_isfound():
-                                                print('entre')
                                                 typeDoc.set_name(dicTipoDoc.get('nombre'))
                                                 typeDoc.set_active(True)
                                                 typeDoc.guardar()
@@ -281,8 +281,8 @@ class Server:
 
                                             ''' tratar fechas '''
                                             birth_date = h['PID'][0][7][0]
-                                            fecha = f'{birth_date[0:4]}-{birth_date[4:6]}-{birth_date[6:8]}'
-                                            birth_date = datetime.datetime.strptime(fecha, '%Y-%m-%d')
+                                            birth_date = f'{birth_date[0:4]}-{birth_date[4:6]}-{birth_date[6:8]}'
+                                            birth_date = datetime.datetime.strptime(birth_date, '%Y-%m-%d')
 
                                             dicPatient = {
                                                 'typeId': typeDoc.get_id(),
@@ -454,6 +454,7 @@ class Server:
                                             )
 
                                             ''' processing test '''
+
                                     except Exception as e:
                                         print(f'[x] - {fecha} | ERROR | error: {e}')
 
@@ -478,7 +479,7 @@ class Server:
                                         mensaje.set_response()
 
                                 client.send(f'{self.__CHAR_IN}{resp.get_str()}{self.__CHAR_OUT}'.encode())
-                                #client.send(f'{self.__CHAR_IN}{mensaje.response}{self.__CHAR_OUT}'.encode())
+                                print(f'[x] - {fecha} | SUCCESS | mensaje procesado con exito  | info: {addr[0]}:{addr[1]}')
                                 try:
                                     client.close()
                                 except:

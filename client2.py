@@ -25,6 +25,7 @@ class ClientSocket:
         try:
             # conectar con el server
             __CLIENT = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            __CLIENT.settimeout(120)
             __CLIENT.connect((os.environ.get('SOCKET_SERVER_HOST'), int(os.environ.get('SOCKET_SERVER_PORT'))))
 
             if msg_custom is not None:
@@ -86,10 +87,9 @@ else:
     cs.count_message()
 
 dato = str(input('Deseas borrar el log (S / N): '))
-
 if dato.lower() == 's':
     sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sc.connect(('localhost', 8000))
+    sc.connect(('172.31.4.70', 6002))
     byt = 'delete-logs'.encode() # dato.encode()
     sc.send(byt)
     resp = sc.recv(1024)
@@ -97,7 +97,7 @@ if dato.lower() == 's':
     sc.close()
 
     sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sc.connect(('localhost', 8000))
+    sc.connect(('172.31.4.70', 6002))
     byt = 'close'.encode()  # dato.encode()
     sc.send(byt)
     resp = sc.recv(1024)
@@ -106,7 +106,7 @@ if dato.lower() == 's':
     print('end..')
 else:
     sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sc.connect(('localhost', 8000))
+    sc.connect(('172.31.4.70', 6002))
     byt = 'close'.encode()  # dato.encode()
     sc.send(byt)
     resp = sc.recv(1024)
