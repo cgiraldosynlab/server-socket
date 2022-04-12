@@ -3,6 +3,7 @@ import datetime
 import os
 import socket
 import random
+import time
 
 class ClientSocket:
 
@@ -72,45 +73,89 @@ class ClientSocket:
         except Exception as e:
             print(e)
 
-cs = ClientSocket()
+    def send_order_database(self):
+        try:
+            from config.db import Database
+            db = Database()
+            rows = db.query("""
+                select ln_id         as ID
+                     , ln_fecha      as FECHA
+                     , ln_hora       as HORA
+                     , ln_u_usuarios as CODIGO
+                     , ln_mensaje    as MENSAJE
+                  from log.log_in li
+                 where li.ln_fecha        >= %s
+                   and li.ln_u_usuarios like %s
+            """, ('2022-01-01', 'HISJOB-%'))
 
+            cant_ordenes = len(rows)
+            try:
+                cant_enviar = int(input(f'Cantidad de ordenes que desea enviar (hay {cant_ordenes} disp para enviar): '))
+            except:
+                cant_enviar = 1
+
+            if cant_enviar > 0:
+                index = 0
+                for row in rows:
+                    ''' enviar orden al socket '''
+                    self.enviar(msg_custom=row.mensaje)
+                    time.sleep(1)
+                    index += 1
+
+                    if index >= cant_enviar:
+                        break
+        except Exception as e:
+            print(e)
+
+cs = ClientSocket()
 cant = 1
 try:
-    cant = int(input('cuantos mensajes desea enviar:'))
+    try:
+        option = int(input('Desea enviar ordenes realaes o desde el archivo (0: Reals | 1: File | 2: close): '))
+    except:
+        option = 2
+
+    if option == 1:
+        cant = int(input('cuantos mensajes desea enviar: '))
+        for item in range(cant):
+            cs.enviar()
+        else:
+            cs.count_message()
+    elif option == 0:
+        cs.send_order_database()
+    elif option == 2:
+        cs.enviar(msg_custom='close')
 except:
     cant = 1
 
-#cs.enviar('delete-logs')
-for item in range(cant):
-    cs.enviar()
-else:
-    cs.count_message()
+if option == 1:
+    dato = str(input('Deseas borrar el log (S / N): '))
+    if dato.lower() == 's':
+        sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sc.connect((os.environ.get('SOCKET_SERVER_HOST'), int(os.environ.get('SOCKET_SERVER_PORT'))))
+        byt = 'delete-logs'.encode() # dato.encode()
+        sc.send(byt)
+        resp = sc.recv(1024)
+        print(str(resp.decode()))
+        sc.close()
 
-dato = str(input('Deseas borrar el log (S / N): '))
-if dato.lower() == 's':
-    sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sc.connect(('172.31.4.70', 6002))
-    byt = 'delete-logs'.encode() # dato.encode()
-    sc.send(byt)
-    resp = sc.recv(1024)
-    print(str(resp.decode()))
-    sc.close()
-
-    sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sc.connect(('172.31.4.70', 6002))
-    byt = 'close'.encode()  # dato.encode()
-    sc.send(byt)
-    resp = sc.recv(1024)
-    print(str(resp.decode()))
-    sc.close()
-    print('end..')
-else:
-    sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sc.connect(('172.31.4.70', 6002))
-    byt = 'close'.encode()  # dato.encode()
-    sc.send(byt)
-    resp = sc.recv(1024)
-    print(str(resp.decode()))
-    sc.close()
-    print('end..')
+        salir = int(input('Desea cerrar el servidor (0: No | 1: Si): '))
+        if salir == 1:
+            sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sc.connect((os.environ.get('SOCKET_SERVER_HOST'), int(os.environ.get('SOCKET_SERVER_PORT'))))
+            byt = 'close'.encode()  # dato.encode()
+            sc.send(byt)
+            resp = sc.recv(1024)
+            print(str(resp.decode()))
+            sc.close()
+            print('end..')
+    else:
+        sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sc.connect(('172.31.4.70', 6002))
+        byt = 'close'.encode()  # dato.encode()
+        sc.send(byt)
+        resp = sc.recv(1024)
+        print(str(resp.decode()))
+        sc.close()
+        print('end..')
 

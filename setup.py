@@ -77,7 +77,7 @@ try:
     else:
         value = input('ingresar un valor a enviar para el servidor: ')
 
-
+    # recrear base de datos
     bd_create = SQLite()
 except:
     print('error')
@@ -97,7 +97,6 @@ try:
         server.listen()
         server.acceptClient()
 except Exception as e:
-    #print('error al ejecutar el servidor', e)
     print(e)
 finally:
     gc.collect()

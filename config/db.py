@@ -111,7 +111,7 @@ class SQLite:
     def __init__(self):
         try:
             ruta_db = os.path.dirname(__file__)
-            self.conn = sqlite3.connect(f'{ruta_db}/synlab.db')
+            self.conn = sqlite3.connect(f'{ruta_db}/synlab.db', timeout=60)
             self.conn.row_factory = sqlite3.Row
             self.cursor = self.conn.cursor()
 

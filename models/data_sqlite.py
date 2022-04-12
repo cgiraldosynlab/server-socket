@@ -1,7 +1,25 @@
 import datetime
 from config.db import SQLite
 
+class LogApp(SQLite):
+
+    __NAME__ = '__logapp__'
+
+    def __init__(self, mensaje):
+        super().__init__()
+        try:
+            self.content = mensaje
+            sql = 'insert into t010_log_app (f010_content, f010_notify, f010_show)'
+            sql += 'values (?, False, False)'
+            self.cursor.execute(sql, (self.content, ))
+            self.conn.commit()
+        except Exception as e:
+            self.conn.rollback()
+            print(f'{self.__NAME__}|__init__', e)
+
 class Usuario(SQLite):
+
+    __NAME__ = '__Usuario__'
 
     __id = -1
     __username = None
@@ -40,7 +58,7 @@ class Usuario(SQLite):
                 self.__user = user
                 self.__isFound = False
         except Exception as e:
-            print(__class__, e )
+            LogApp(mensaje=f'__Usuario__| __init__ | {e}')
 
     def __clear(self):
         self.__id = None
@@ -58,8 +76,7 @@ class Usuario(SQLite):
                 pass
             return True
         except Exception as e:
-            return False
-            print('error al crear el usuario', e)
+            LogApp(f'__Usuario__ | guardar | {e}')
 
     def delete(self):
         if self.__isFound:
@@ -92,6 +109,9 @@ class Usuario(SQLite):
         return self.__isFound
 
 class TipoDocumento(SQLite):
+
+    __NAME__ = '__TipoDocumento__'
+
     __id = -1
     __code = ''
     __name = ''
@@ -103,7 +123,7 @@ class TipoDocumento(SQLite):
     def __init__(self, codigo):
         try:
             super().__init__()
-            self.__code = codigo.upper().strip()
+            self.__code = codigo.strip()
             if codigo and codigo != '':
                 sql_text = '''
                       select f002_id        AS id
@@ -124,7 +144,7 @@ class TipoDocumento(SQLite):
                     self.__createAt = row['createAt']
                     self.__isFound = True
         except Exception as e:
-            print(__class__, e)
+            LogApp(f'{self.__NAME__} | __init__ | {e}')
 
     def guardar(self) -> bool:
         try:
@@ -132,8 +152,8 @@ class TipoDocumento(SQLite):
                 sql = 'insert into t002_types_documents(f002_code, f002_name, f002_active, f002_delete, f002_f001_id)'
                 sql += 'values(?, ?, ?, False, 1)'
                 params = (
-                    self.__code.upper().strip(),
-                    self.__name.upper().strip(),
+                    self.__code,
+                    self.__name,
                     self.__active
                 )
                 self.cursor.execute(sql, params)
@@ -142,7 +162,7 @@ class TipoDocumento(SQLite):
             else:
                 sql = 'update t002_types_documents set f002_name = ?, f002_active = ? where f002_id = ?'
                 params = (
-                    self.__name.upper().strip(),
+                    self.__name,
                     self.__active,
                     self.__id
                 )
@@ -152,7 +172,7 @@ class TipoDocumento(SQLite):
             return self.cursor.rowcount > 0
         except Exception as e:
             self.conn.rollback()
-            print(__class__, e)
+            LogApp(f'{self.__NAME__} | __init__ | {e} | {self.__code}-{self.__name}')
 
     def set_code(self, code):
         self.__code = code
@@ -182,6 +202,8 @@ class TipoDocumento(SQLite):
         return self.__isFound
 
 class Paciente(SQLite):
+
+    __NAME__ = '__Paciente__'
 
     id = None
     tipodoc = None
@@ -272,27 +294,75 @@ class Paciente(SQLite):
                         except Exception as e:
                             print(e)
         except Exception as e:
-            print('__init_:', e)
+            LogApp(f'{self.__NAME__} | __init__ | {e}')
     
     def guardar(self, **kwargs):
         registry = False
         if len(kwargs) > 0:
 
-            self.tipodoc = kwargs.get('typeId')
-            self.number = kwargs.get('numberId')
-            self.first_name = kwargs.get('first_name').upper()
-            self.second_name = kwargs.get('second_name').upper()
-            self.last_name = kwargs.get('last_name').upper()
-            self.middle_name = kwargs.get('middle_name').upper()
-            self.birthdate = kwargs.get('birth_date')
-            self.gender = kwargs.get('gender').upper()
-            self.expedition_date = kwargs.get('expedition')
-            self.blood_type = kwargs.get('blood_type').upper()
-            self.address = kwargs.get('address').upper()
-            self.phone = kwargs.get('phone')
-            self.cellphone = kwargs.get('cellphone')
-            self.email = kwargs.get('email').upper()
-            self.isActive = kwargs.get('active')
+            if kwargs.get('typeId'):
+                self.tipodoc = kwargs.get('typeId')
+            else:
+                self.tipodoc = -1
+            if kwargs.get('numberId'):
+                self.number = kwargs.get('numberId')
+            else:
+                self.number = ''
+            if kwargs.get('first_name'):
+                self.first_name = kwargs.get('first_name')
+            else:
+                self.first_name = ''
+            if kwargs.get('second_name'):
+                self.second_name = kwargs.get('second_name')
+            else:
+                self.second_name = ''
+            if kwargs.get('last_name'):
+                self.last_name = kwargs.get('last_name')
+            else:
+                self.last_name = ''
+            if kwargs.get('middle_name'):
+                self.middle_name = kwargs.get('middle_name')
+            else:
+                self.middle_name = ''
+            if kwargs.get('birth_date'):
+                self.birthdate = kwargs.get('birth_date')
+            else:
+                self.birthdate = ''
+            if kwargs.get('gender'):
+                if kwargs.get('gender') != '':
+                    self.gender = kwargs.get('gender')
+                else:
+                    self.gender = 'I'
+            else:
+                self.gender = 'I'
+            if kwargs.get('expedition'):
+                self.expedition_date = kwargs.get('expedition')
+            else:
+                self.expedition_date = ''
+            if kwargs.get('blood_type'):
+                self.blood_type = kwargs.get('blood_type')
+            else:
+                self.blood_type = ''
+            if kwargs.get('address'):
+                self.address = kwargs.get('address')
+            else:
+                self.address = ''
+            if kwargs.get('phone'):
+                self.phone = kwargs.get('phone')
+            else:
+                self.phone = ''
+            if kwargs.get('cellphone'):
+                self.cellphone = kwargs.get('cellphone')
+            else:
+                self.cellphone = ''
+            if kwargs.get('email'):
+                self.email = kwargs.get('email')
+            else:
+                self.email = ''
+            if kwargs.get('active'):
+                self.isActive = kwargs.get('active')
+            else:
+                self.isActive = True
             self.isDelete = False
 
             if not self.isFound:
@@ -306,19 +376,15 @@ class Paciente(SQLite):
                     insert_params = (self.tipodoc, self.number, self.first_name, self.second_name, self.last_name,
                                      self.middle_name, self.birthdate, self.gender, self.expedition_date, self.blood_type,
                                      self.address, self.phone, self.cellphone, self.email, self.isActive, self.isDelete )
-
                     self.cursor.execute(sql_insert, insert_params)
                     rowAffected = self.cursor.rowcount
                     self.conn.commit()
-                    self.cursor.execute('SELECT f003_id FROM t003_patients WHERE f003_f002_id = ? AND f003_number = ?', (self.tipodoc, self.number))
-                    row = self.cursor.fetchone()
-                    if row:
-                        self.id = row['f003_id']
-
+                    if self.cursor.rowcount > 0:
+                        self.id = self.cursor.lastrowid
                     return rowAffected > 0
                 except Exception as e:
                     self.conn.rollback()
-                    print('insert:', e)
+                    LogApp(f'{self.__NAME__} | guardar | insert | {e} | ')
             else:
                 try:
                     sql_update = '''
@@ -349,20 +415,26 @@ class Paciente(SQLite):
                     return rowAffected > 0
                 except Exception as e:
                     self.conn.rollback()
-                    print('error al actualizar la información demografica del paciente')
+                    LogApp(f'{self.__NAME__} | guardar | update | {e}')
         return registry
     
     def delete(self):
         try:
             return self.update('UPDATE t003_patients SET f003_delete = 1 WHERE f003_f002_id = ? AND f003_number = ?', (self.tipodoc, self.number))
         except Exception as e:
-            print('update error -', e)
+            datos = f'{self.tipodoc}¬{self.number}¬{self.first_name}¬{self.second_name}¬'
+            datos += f'{self.last_name}¬{self.middle_name}¬{self.birthdate}¬{self.gender}¬'
+            datos += f'{self.expedition_date}¬{self.blood_type}¬{self.address}¬{self.phone}¬'
+            datos += f'{self.cellphone}¬{self.email}¬{self.isActive}¬{self.isDelete}'
+            #print(datos)
+            LogApp(f'{self.__NAME__} | delete | {e}')
 
     def __str__(self):
         return f'{self.id} - {self.tipodoc} - doc: {self.number} - {self.first_name} - {self.second_name} - {self.last_name} - {self.middle_name} - {self.birthdate} - {self.gender} - {self.expedition_date} - {self.blood_type} - {self.address} - {self.phone} - {self.cellphone} - {self.email}'
 
-
 class Ubicacion(SQLite):
+
+    __NAME__ = 'Ubicacion'
 
     id = None
     code = None
@@ -400,7 +472,7 @@ class Ubicacion(SQLite):
                         self.createAt = row['createAt']
                         self.isFound = True
         except Exception as e:
-            print(__class__, e)
+            LogApp(f'{self.__NAME__} | __init__ | {e}')
 
     def guardar(self):
         if self.isFound:
@@ -413,7 +485,7 @@ class Ubicacion(SQLite):
                 return rowAffected > 0
             except Exception as e:
                 self.conn.rollback()
-                print(__class__, e)
+                LogApp(f'{self.__NAME__} | guardar | insert | {e}')
         else:
             try:
                 sql = 'update t004_locations set f004_name = ?, f004_active = ? where f004_id = ? and f004_code = ?'
@@ -424,19 +496,21 @@ class Ubicacion(SQLite):
                 return rowAffected > 0
             except Exception as e:
                 self.conn.rollback()
-                print(__class__, e)
+                LogApp(f'{self.__NAME__} | guardar | update | {e} | {self.code}¬{self.name}')
 
     def delete(self):
         if self.isFound:
             try:
                 self.cursor('update t004_locations set f004_delete = true where f004_id = ?', (self.id, ))
-                rowAffected  = self.cursor.fetchall()
+                rowAffected = self.cursor.fetchall()
                 self.conn.commit()
                 return rowAffected > 0
             except Exception as e:
-                print(__class__, e)
+                LogApp(f'{self.__NAME__} | delete | {e}')
 
 class Servicio(SQLite):
+
+    __NAME__ = 'Servicio'
 
     id = None
     code = None
@@ -474,13 +548,13 @@ class Servicio(SQLite):
                         self.createAt = row['createAt']
                         self.isFound = True
         except Exception as e:
-            print(__class__, e)
+            LogApp(f'{self.__NAME__} | __init__ | {e}')
 
     def guardar(self):
         if self.isFound:
             try:
                 sql = 'INSERT INTO t005_services (f005_code, f005_name, f005_active, f005_delete, f005_f001_id) VALUES (?, ?, ?, ?, ?)'
-                params = (self.code.upper(), self.name.upper(), self.isActive, self.isDelete, 1)
+                params = (self.code, self.name, self.isActive, self.isDelete, 1)
                 self.cursor(sql, params)
                 if self.cursor.rowcount > 0:
                     self.id = self.cursor.lastrowid
@@ -488,18 +562,18 @@ class Servicio(SQLite):
                 return self.cursor.rowcount > 0
             except Exception as e:
                 self.conn.rollback()
-                print(__class__, e)
+                LogApp(f'{self.__NAME__} | guardar | insert | {e}')
         else:
             try:
                 sql = 'update t005_services set f005_name = ?, f005_active = ? where f005_id = ? and f005_code = ?'
-                params = (self.name.upper(), self.isActive, self.id, self.code)
+                params = (self.name, self.isActive, self.id, self.code)
                 self.cursor(sql, params)
                 rowAffected = self.cursor.rowcount
                 self.conn.commit()
                 return rowAffected > 0
             except Exception as e:
                 self.conn.rollback()
-                print(__class__, e)
+                LogApp(f'{self.__NAME__} | guardar | update | {e}')
 
     def delete(self):
         if self.isFound:
@@ -509,9 +583,11 @@ class Servicio(SQLite):
                 self.conn.commit()
                 return rowAffected > 0
             except Exception as e:
-                print(__class__, e)
+                LogApp(f'{self.__NAME__} | delete | {e}')
 
 class Empresa(SQLite):
+
+    __NAME__ = '__Empresa__'
 
     id = None
     code = None
@@ -549,13 +625,13 @@ class Empresa(SQLite):
                         self.createAt = row['createAt']
                         self.isFound = True
         except Exception as e:
-            print(__class__, e)
+            LogApp(f'{self.__NAME__} | __init__ | {e}')
 
     def guardar(self):
         if not self.isFound:
             try:
                 sql = 'INSERT INTO t006_companies (f006_code, f006_name, f006_active, f006_delete, f006_f001_id) VALUES (?, ?, ?, ?, ?)'
-                params = (self.code.upper(), self.name.upper(), self.isActive, self.isDelete, 1)
+                params = (self.code, self.name, self.isActive, self.isDelete, 1)
                 self.cursor.execute(sql, params)
                 if self.cursor.rowcount > 0:
                     self.id = self.cursor.lastrowid
@@ -564,18 +640,18 @@ class Empresa(SQLite):
                 return self.cursor.rowcount > 0
             except Exception as e:
                 self.conn.rollback()
-                print(__class__, e)
+                LogApp(f'{self.__NAME__} | guardar | insert | {e}')
         else:
             try:
                 sql = 'update t006_companies set f006_name = ?, f006_active = ? where f006_id = ? and f006_code = ?'
-                params = (self.name.upper(), self.isActive, self.id, self.code)
+                params = (self.name, self.isActive, self.id, self.code)
                 self.cursor.execute(sql, params)
                 rowAffected = self.cursor.rowcount
                 self.conn.commit()
                 return rowAffected > 0
             except Exception as e:
                 self.conn.rollback()
-                print(__class__, e)
+                LogApp(f'{self.__NAME__} | guardar | update | {e}')
 
     def delete(self):
         if self.isFound:
@@ -585,9 +661,81 @@ class Empresa(SQLite):
                 self.conn.commit()
                 return rowAffected > 0
             except Exception as e:
-                print(__class__, e)
+                LogApp(f'{self.__NAME__} | delete | {e}')
+
+
+class Test(SQLite):
+
+    __NAME__ = 'Test'
+
+    id = None
+    code = None
+    name = None
+    active = False
+    groupBy = None
+    createAt = None
+    isFound = False
+
+    def __init__(self, code):
+        super().__init__()
+        try:
+            self.code = code
+            if code:
+                sql = '''
+                    select f012_id        as id
+                         , f012_code      as code 
+                         , f012_name      as name
+                         , f012_active    as isActive
+                         , f012_group_by  as group_by
+                         , f012_create_at as createAt
+                      from t012_test tt
+                     where tt.f012_code = ? '''
+                self.cursor.execute(sql, (code,))
+                rows = self.cursor.fetchall()
+                if rows:
+                    for row in rows:
+                        self.id = row['id']
+                        self.name = row['name']
+                        self.active = row['isActive']
+                        self.groupBy = row['group_by']
+                        self.createAt = row['createAt']
+                        self.isFound = True
+        except Exception as e:
+            print('error al buscar el test', e)
+
+    def guardar(self, **kwargs):
+        try:
+            if kwargs.get('code'):
+                self.code = kwargs.get('code')
+            if kwargs.get('name'):
+                self.name = kwargs.get('name')
+            if kwargs.get('isActive'):
+                self.active = kwargs.get('isActive')
+            if kwargs.get('groupBy'):
+                self.groupBy = kwargs.get('groupBy')
+            else:
+                self.groupBy = 0
+
+            ''' procesar muestra '''
+            if not self.isFound:
+                sql_insert = 'insert into t012_test (f012_code, f012_name, f012_active, f012_group_by) values (?, ?, ?, ?)'
+                params_insert = (self.code, self.name, self.active, self.groupBy)
+                self.cursor.execute(sql_insert, params_insert)
+                if self.cursor.rowcount > 0:
+                    self.id = self.cursor.lastrowid
+                    self.isFound = True
+            else:
+                sql_update = 'update t012_test set f012_name = ?, f012_active = ?, f012_group_by = ? where f012_id = ?'
+                params_update = (self.name, self.active, self.groupBy, self.id)
+                self.cursor.execute(sql_update, params_update)
+            self.conn.commit()
+        except Exception as e:
+            self.conn.rollback()
+            print(f'[x] ERROR | {self.__NAME__} | error: {e}')
 
 class MensajeIn(SQLite):
+
+    __NAME__ = 'MensajeIn'
 
     id = None
     createAt = None
@@ -631,7 +779,76 @@ class MensajeIn(SQLite):
                 self.conn.commit()
         except Exception as e:
             self.conn.rollback()
-            print(__class__, e)
+            LogApp(f'{self.__NAME__} | __init__ | {e}')
+
+    def delete_message(self):
+        if self.isFound:
+            try:
+                self.cursor.execute('delete from t008_orders where f008_f007_id = ?', (self.id, ))
+                self.cursor.execute('delete from t007_messages where f007_id = ?', (self.id, ))
+                self.conn.commit()
+            except Exception as e:
+                self.conn.rollback()
+                LogApp(f'{self.__NAME__} | delete_message | {e}')
+
+    def set_response(self):
+        try:
+            if self.isFound:
+                self.cursor.execute(
+                    'update t007_messages set f007_response = ? where f007_id = ?',
+                    (self.response, self.id)
+                )
+                self.conn.commit()
+        except Exception as e:
+            self.conn.rollback()
+            LogApp(f'{self.__NAME__} | set_response | {e}')
+
+class MensajeError(SQLite):
+
+    __NAME__ = 'MensajeError'
+
+    id = None
+    createAt = None
+    createBy = None
+    sender = None
+    sender_facility = None
+    reception = None
+    reception_facility = None
+    control_id = None
+    content = None
+    response = None
+    type = None
+    isDelete = False
+    processAt = None
+    isFound = False
+
+    def __init__(self, buscar, **kwargs):
+        super().__init__()
+        try:
+            if buscar:
+                pass
+            else:
+                self.sender = kwargs.get('sender')
+                self.sender_facility = kwargs.get('sender_facility')
+                self.reception = kwargs.get('reception')
+                self.reception_facility = kwargs.get('reception_facility')
+                self.control_id = kwargs.get('control_id')
+                self.content = kwargs.get('content')
+                self.type = kwargs.get('type')
+
+                sql = 'insert into t011_messages_error '
+                sql += '(f011_sender, f011_sender_facility, f011_reception, f011_reception_facility, f011_control_id, f011_content, f011_response, f011_type_message) '
+                sql += 'values '
+                sql += '(?, ?, ?, ?, ?, ?, ?, ?)'
+                params = (self.sender, self.sender_facility, self.reception, self.reception_facility, self.control_id, self.content, '', self.type)
+                self.cursor.execute(sql, params)
+                if self.cursor.rowcount > 0:
+                    self.id = self.cursor.lastrowid
+                    self.isFound = True
+                self.conn.commit()
+        except Exception as e:
+            self.conn.rollback()
+            LogApp(f'{self.__NAME__} | __init__ | {e}')
 
     def set_response(self):
         try:
@@ -640,9 +857,11 @@ class MensajeIn(SQLite):
                 self.conn.commit()
         except Exception as e:
             self.conn.rollback()
-            print(__class__, e)
+            LogApp(f'{self.__NAME__} | set_response | {e}')
 
 class Orden(SQLite):
+
+    __NAME__ = '__Orden__'
 
     # properties
     id = None
@@ -658,7 +877,9 @@ class Orden(SQLite):
     bed = None
     type_service = None # E: Empresa | P: Particular
     entity = None
+    service = None
     createAt = None
+    details = []
     isFound = False
 
     def __init__(self, **kwargs):
@@ -676,23 +897,64 @@ class Orden(SQLite):
             self.bed = kwargs.get('bed')
             self.type_service = kwargs.get('type')
             self.entity = kwargs.get('entity')
+            self.history = kwargs.get('history')
+            self.service = kwargs.get('service')
 
-            sql = 'INSERT INTO t008_orders (f008_number, f008_date, f008_time, f008_f007_id, f008_f003_id, f008_f004_id, f008_f005_id, f008_f006_id, f008_priority, f008_bed, f008_type_service, f008_entity)'
-            sql += 'VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? );'
-            params = (self.number, self.date, self.time, self.messageId, self.patientId, self.locationId, self.serviceId, self.companyId, self.priority, self.bed, self.type_service, self.entity)
+            sql = 'INSERT INTO t008_orders '
+            sql += '(f008_number, f008_date, f008_time, f008_f007_id, f008_f003_id, f008_f004_id, f008_f005_id, f008_f006_id, f008_priority, f008_bed, f008_type_service, f008_entity, f008_history, f008_service)'
+            sql += 'VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? );'
+            params = (
+                self.number,
+                self.date,
+                self.time,
+                self.messageId,
+                self.patientId,
+                self.locationId,
+                self.serviceId,
+                self.companyId,
+                self.priority,
+                self.bed,
+                self.type_service,
+                self.entity,
+                self.history,
+                self.service
+            )
             self.cursor.execute(sql, params)
             self.conn.commit()
 
             if self.cursor.rowcount > 0:
+                self.isFound = True
                 self.id = self.cursor.lastrowid
 
         except Exception as e:
+            self.isFound = False
             self.conn.rollback()
-            print(__class__, e)
+            LogApp(f'{self.__NAME__} | __init__ | {e}')
 
-    def details(self, *args):
+    def add_detail(self, **kwargs):
         try:
-            for item in args:
-                print(item)
+            pass
         except Exception as e:
-            print(__class__, e)
+            print('error:', e)
+
+    def add_details(self, *args):
+        try:
+            if self.isFound:
+                sql = 'INSERT INTO t009_details (f009_f008_id, f009_barcode, f009_sequence, f009_test, f009_name, f009_date_test)'
+                sql += 'VALUES (?, ?, ?, ?, ?, ?)'
+                for item in args:
+                    for field in item:
+                        #print(field.get('barcode'), field.get('sequence'), field.get('code'), field.get('name'), field.get('date_test'))
+                        self.cursor.execute(sql, (
+                            self.id,
+                            field.get('barcode'),
+                            int(field.get('sequence')),
+                            field.get('code'),
+                            field.get('name'),
+                            field.get('date_test')
+                        ))
+                        self.details.append(field)
+                self.conn.commit()
+        except Exception as e:
+            self.conn.rollback()
+            LogApp(f'{self.__NAME__} | add_details | {e}')
