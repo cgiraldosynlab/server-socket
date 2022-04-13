@@ -352,6 +352,13 @@ class Server:
                                                         create_by = trama[12]
                                                         #create_id_by = trama[]
 
+                                                        service_order = ''
+                                                        if type_company == 'P':
+                                                            service_order = f'PARTICULAR-{location_cod}'
+                                                        else:
+                                                            service_order = f'{company_cod}-{location_cod}'
+
+
                                                         if not is_order:
                                                             isOrder = True
                                                             dicOrden = {
@@ -368,7 +375,8 @@ class Server:
                                                                 'type': type_company,
                                                                 'entity': entity_cod,
                                                                 'history': history,
-                                                                'service': f'{company_cod}-{location_cod}'
+                                                                #'service': f'{company_cod}-{location_cod}'
+                                                                'service': service_order
                                                             }
 
                                                         '''
