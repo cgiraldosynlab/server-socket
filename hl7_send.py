@@ -1,7 +1,7 @@
 import datetime
 import time
-import base64
 import gc
+from models.data_sqlite import LogApp
 from config.db import Database, SQLite
 from suds.xsd.doctor import ImportDoctor, Import
 #from suds.xsd.sxbasic import Import
@@ -17,6 +17,17 @@ class SynlabSOAP:
         self.USERNAME = 'HIUSJ'
         self.PASSWORD = 'SElVU0o='
         self.__DB__ = SQLite()
+        self.__PG__ = Database()
+
+        try:
+            sql_search = "select pid from pg_catalog.pg_stat_activity where datname = %s and application_name IN %s"
+            sql_update_pg = 'select pg_terminate_backend(%s)'
+            rows = self.__PG__.query(sql_search, ('WINSISLAB_AVENIDA', ('WEBSERVICES', 'WEBSERVICES-LOG')))
+            if rows:
+                for row in rows:
+                    self.__PG__.query(sql_update_pg, (row.pid,))
+        except Exception as e:
+            print(e)
 
     def send_order(self, id_queue, content):
         try:
@@ -33,49 +44,34 @@ class SynlabSOAP:
             request_data = client.factory.create('ns2:TclMessageHL7')
             request_data.ControlID = id_queue
             request_data.Version = '2.3'
-            request_data.MessageHL7 = content
             request_data.TypeMessage = 'ORM^0O1'
+            request_data.MessageHL7 = content
 
             response = client.service.SetMessageHL7(request_auth, request_data)
-            #print(response)
-            #print('response:', response.MessageHL7)
+            time.sleep(1)
             if response:
                 try:
-                    self.__DB__.cursor.execute("UPDATE t013_queues SET f013_indicted = TRUE, f013_indicted_at = (SELECT (datetime('now', 'localtime'))) WHERE f013_id = ?", (id_queue, ))
+                    sql_update = "update t013_queues set f013_response = ?, f013_indicted = 1, f013_indicted_at = (select (datetime('now', 'localtime'))) where f013_id = ?"
+                    self.__DB__.cursor.execute(sql_update, (str(response.MessageHL7), id_queue))
                     self.__DB__.conn.commit()
                 except Exception as e:
                     self.__DB__.conn.rollback()
-                    print('error:', e)
+                    LogApp(mensaje=f'error al marcar el registro como guardado \n error: {e}')
+
+                ''' finally conections the services web'''
+                try:
+                    sql_search = "select pid from pg_catalog.pg_stat_activity where datname = %s and application_name in %s"
+                    sql_update_pg = 'select pg_terminate_backend( %s )'
+                    rows = self.__PG__.conn(sql_search, ('WINSISLAB_AVENIDA', ('WEBSERVICES', 'WEBSERVICES-LOG')))
+                    if rows:
+                        for row in rows:
+                            self.__PG__.query(sql_update_pg, (row.pid, ))
+                except:
+                    pass
+
+                time.sleep(1)
         except Exception as e:
-            print('send_order:', e)
-
-    def send_order_2(self, id, content):
-        try:
-            import zeep
-
-            WSDL = 'http://container.angel.com.co:8091/WSDLLInterconexiones.dll/wsdl/IWSInterconexiones'
-            client = zeep.Client(wsdl=WSDL)
-            print(client)
-            print( 'Response:', client.service.SetORM(self.USERNAME, self.PASSWORD, content) )
-        except Exception as e:
-            print('error:', e)
-
-    def send_order_suds(self, id, content):
-        try:
-            url = "http://container.angel.com.co:8091/WSDLLInterconexiones.dll/wsdl/IWSInterconexiones"
-
-            client = Client(url, cache=None)
-            print(client)
-
-            request = client.factory.create('tns:SetORM')
-            request.AUsername = self.USERNAME
-            request.APassword = self.PASSWORD
-            request.AHL7 = content
-
-            result = client.service.SetORM(request)
-            print('result:', result)
-        except Exception as e:
-            print('send_order_suds', e)
+            LogApp(mensaje=f'error al enviar el fichero HL7 \n error: {e}')
 
 class OrderHL7(Database, SQLite):
 
@@ -117,7 +113,7 @@ class OrderHL7(Database, SQLite):
         INNER JOIN t006_companies       tc  ON (tc.f006_id      = o.f008_f006_id )
              WHERE od.f009_indicted = False
                AND tt.f012_group_by = ?
-          ORDER BY o.f008_id ASC'''
+          ORDER BY o.f008_id ASC  limit 10 '''
 
     __SQLDETAILS = '''
             SELECT od.f009_id
@@ -147,7 +143,7 @@ class OrderHL7(Database, SQLite):
             fecha = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             print(f'[x] {fecha} | SEARCH | buscando examenes tipo 0')
 
-            rows = self.db.cursor.execute(self.__SQL, (0, )).fetchall()
+            rows = self.db.cursor.execute(self.__SQL, (0, 'EPS002')).fetchall()
             index = 0
             for row in rows:
                 format = '%Y%m%d%H%M%S'
@@ -161,14 +157,14 @@ class OrderHL7(Database, SQLite):
                 hl7_geral = f'MSH|^~\&|HIUSJ||SYNLABCOL||{datetime.datetime.now().strftime("%Y%M%d%H%M%s")}||ORM^O01|{row["f008_id"]}|P|2.3||||||8859/1||||||||| \n'
                 hl7_geral += f'PID|1|{row["f002_code"]}^{row["f003_number"]}|{row["f008_history"]}|{row["f008_history"]}|{row["f003_last_name"]} {row["f003_middle_name"]}^{row["f003_first_name"]} {row["f003_second_name"]}||{str(row["f003_birth_date"]).replace("-", "")}|{row["f003_gender"]}|||sin datos||0|{row["f003_email"]}||||||||||||||||||||||||||| \n'
                 hl7_geral += f'PV1|1|{row["f008_type_service"]}|{row["f008_bed"]}||||||||||||||||||||||||||||||||||||||||| \n'
-                hl7_geral += f'IN1|1|860030582|443^Hospital Infantil Universitario de San Jose||||||||||||||||||||||||||||||||||||||||||||||||||||| \n'
-                hl7_geral += f'ORC|NW|{row["f008_number"]}^860030582||||||{row["FechaHora"]}|{row["FechaHora"]}|0|||||{service_cod}|||||||||||||||||||| \n'
+                hl7_geral += f'IN1|1|900098476|443^Hospital Infantil Universitario de San Jose||||||||||||||||||||||||||||||||||||||||||||||||||||| \n'
+                hl7_geral += f'ORC|NW|{row["f008_number"]}^900098476||||||{row["FechaHora"]}|{row["FechaHora"]}|0|||||{service_cod}^{row["f006_name"]}^^{row["f006_code"]}^{row["f006_name"]}|||||||||||||||||||| \n'
 
                 ''' buscar detalles de la orden '''
                 obr_pos = 1
                 rows_details = self.db.cursor.execute(self.__SQLDETAILS, (0, row['f008_id'])).fetchall()
                 for item in rows_details:
-                    hl7_geral += f'OBR|{obr_pos}|{item["f009_barcode"]}^860030582||{item["f009_test"]}^{item["f009_name"]}|||||{item["FechaHora"]}|||||||||||||||||||||||||||||||||||||||||||||| \n'
+                    hl7_geral += f'OBR|{obr_pos}|{item["f009_barcode"]}^900098476||{item["f009_test"]}^{item["f009_name"]}|||||{item["FechaHora"]}|||||||||||||||||||||||||||||||||||||||||||||| \n'
                     try:
                         self.db.cursor.execute(
                             'UPDATE t009_details SET f009_indicted = TRUE, f009_indicted_at = (SELECT (datetime("now", "localtime"))) WHERE f009_id = ?',
@@ -181,15 +177,13 @@ class OrderHL7(Database, SQLite):
 
                 ''' guardar mensaje '''
                 try:
-                    self.db.cursor.execute(
-                        "insert into t013_queues (f013_f008_id, f013_control_id, f013_content ) values ( ?, ?, ? )",
-                        (row['f008_id'], row['f008_id'], hl7_geral))
+                    self.db.cursor.execute("insert into t013_queues (f013_f008_id, f013_control_id, f013_content ) values ( ?, ?, ? )", (row['f008_id'], row['f008_id'], hl7_geral))
                     self.db.conn.commit()
-                    if self.cursor.rowcount > 0:
+                    if self.db.cursor.rowcount > 0:
                         synlabSoap = SynlabSOAP()
-                        synlabSoap.send_order(self.cursor.lastrowid, hl7_geral)
+                        synlabSoap.send_order(self.db.cursor.lastrowid, hl7_geral)
                 except Exception as e:
-                    print(f'[x] {fecha} | ERROR-HL7 | error al guardar el fichero HL7')
+                    print(f'[x] {fecha} | ERROR-HL7 | error al guardar el fichero HL7 | {e}')
                     self.db.conn.rollback()
 
                 index += 1
@@ -204,28 +198,23 @@ class OrderHL7(Database, SQLite):
             fecha = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             print(f'[x] {fecha} | SEARCH | buscando examenes tipo 1')
 
-            rows = self.db.cursor.execute(self.__SQL, (1,)).fetchall()
+            rows = self.db.cursor.execute(self.__SQL, (1, 'EPS002')).fetchall()
             index = 0
             for row in rows:
                 format = '%Y%m%d%H%M%S'
-                service_cod = ''
-
-                if row['f008_type_service'] == 'P':
-                    service_cod = 'PARTICILAR'
-                else:
-                    service_cod = row["f008_service"]+'-C'
+                service_cod = f'{row["f008_service"]}-COVID'
 
                 hl7_geral = f'MSH|^~\&|HIUSJ||SYNLABCOL||{datetime.datetime.now().strftime("%Y%M%d%H%M%s")}||ORM^O01|{row["f008_id"]}|P|2.3||||||8859/1||||||||| \n'
                 hl7_geral += f'PID|1|{row["f002_code"]}^{row["f003_number"]}|{row["f008_history"]}|{row["f008_history"]}|{row["f003_last_name"]} {row["f003_middle_name"]}^{row["f003_first_name"]} {row["f003_second_name"]}||{str(row["f003_birth_date"]).replace("-","")}|{row["f003_gender"]}|||sin datos||0|{row["f003_email"]}||||||||||||||||||||||||||| \n'
                 hl7_geral += f'PV1|1|{row["f008_type_service"]}|{row["f008_bed"]}||||||||||||||||||||||||||||||||||||||||| \n'
-                hl7_geral += f'IN1|1|860030582|443^Hospital Infantil Universitario de San Jose||||||||||||||||||||||||||||||||||||||||||||||||||||| \n'
-                hl7_geral += f'ORC|NW|{row["f008_number"]}^860030582||||||{row["FechaHora"]}|{row["FechaHora"]}|0|||||{service_cod}|||||||||||||||||||| \n'
+                hl7_geral += f'IN1|1|900098476|443^Hospital Infantil Universitario de San Jose||||||||||||||||||||||||||||||||||||||||||||||||||||| \n'
+                hl7_geral += f'ORC|NW|{row["f008_number"]}-COVID^900098476||||||{row["FechaHora"]}|{row["FechaHora"]}|0|||||{service_cod}^{row["f006_name"]}^^{row["f006_code"]}^{row["f006_name"]}|||||||||||||||||||| \n'
 
                 ''' buscar detalles de la orden '''
                 obr_pos = 1
                 rows_details = self.db.cursor.execute(self.__SQLDETAILS, (1, row['f008_id'], ))
                 for item in rows_details:
-                    hl7_geral += f'OBR|{obr_pos}|{item["f009_barcode"]}^860030582||{item["f009_test"]}^{item["f009_name"]}|||||{item["FechaHora"]}|||||||||||||||||||||||||||||||||||||||||||||| \n'
+                    hl7_geral += f'OBR|{obr_pos}|{item["f009_barcode"]}^900098476||{item["f009_test"]}^{item["f009_name"]}|||||{item["FechaHora"]}|||||||||||||||||||||||||||||||||||||||||||||| \n'
                     try:
                         self.db.cursor.execute('UPDATE t009_details SET f009_indicted = TRUE, f009_indicted_at = (SELECT (datetime("now", "localtime"))) WHERE f009_id = ?', (item['f009_id'], ))
                         self.db.conn.commit()
@@ -239,7 +228,7 @@ class OrderHL7(Database, SQLite):
                     self.db.cursor.execute("insert into t013_queues (f013_f008_id, f013_control_id, f013_content ) values ( ?, ?, ? )", (row['f008_id'], row['f008_id'], hl7_geral))
                     self.db.conn.commit()
                 except Exception as e:
-                    print(f'[x] {fecha} | ERROR-HL7 | error al guardar el fichero HL7')
+                    print(f'[x] {fecha} | ERROR-HL7 | error al guardar el fichero HL7 | {e}')
                     self.db.conn.rollback()
 
                 index += 1
@@ -255,9 +244,9 @@ class OrderHL7(Database, SQLite):
             print(f'[x] {fecha} | PEND | buscando información pendiente para enviar')
 
             rows = self.db.cursor.execute("""SELECT tq.f013_id, tq.f013_content
-                                            FROM t013_queues tq
-                                           WHERE tq.f013_indicted = False
-                                        ORDER BY f013_id ASC""").fetchall()
+                                               FROM t013_queues tq
+                                              WHERE tq.f013_indicted = False
+                                           ORDER BY f013_id ASC""").fetchall()
             if rows:
                 for row in rows:
                     synlabSoap = SynlabSOAP()
@@ -274,11 +263,13 @@ try:
     while True:
         ''' buscar todas las ordenes pendientes por trasmitir '''
         try:
-            #order.search()
+            order.search()
             time.sleep(1)
-            #order.search_covid()
+            order.search_covid()
             time.sleep(5)
             order.send_pend()
+            #time.sleep(10)
+            #sn = SynlabSOAP()
         except Exception as e:
             print(f'[x] {fecha} | ERROR | error al buscar la data | error: {e} ')
         finally:

@@ -13,22 +13,22 @@ from models.data_sqlite import Paciente, Ubicacion, Servicio, Empresa, TipoDocum
 from hl7 import (Message, Segment, Component, Sequence, Field, Accessor, HL7Exception)
 
 '''
-MAC/LINUX
-export SOCKET_SERVER_HOST=localhost SOCKET_SERVER_PORT=8000 SOCKET_SERVER_BUFFER=65507 SOCKET_SERVER_LIMIT_CLIENT=10
-
-WINDOWS
-set SOCKET_SERVER_HOST=172.31.5.70
-set SOCKET_SERVER_PORT=8000 
-set SOCKET_SERVER_BUFFER=65507 
-set SOCKET_SERVER_LIMIT_CLIENT=10
-
-dos tipos de pacientes.
-un unico plan 9418
-paciente de red externa (debe llegar con autorización)
-paciente de red externa (Cuando viene de hospital adicional autorización debe presentar ordenes medicas)
-si viene con varias autorización se debe ingresar por autorización
-WINSISLAB
-ambas se ingresan para un no. de autorización.
+    MAC/LINUX
+    export SOCKET_SERVER_HOST=localhost SOCKET_SERVER_PORT=8000 SOCKET_SERVER_BUFFER=65507 SOCKET_SERVER_LIMIT_CLIENT=10
+    
+    WINDOWS
+    set SOCKET_SERVER_HOST=172.31.5.70
+    set SOCKET_SERVER_PORT=8000 
+    set SOCKET_SERVER_BUFFER=65507 
+    set SOCKET_SERVER_LIMIT_CLIENT=10
+    
+    dos tipos de pacientes.
+    un unico plan 9418
+    paciente de red externa (debe llegar con autorización)
+    paciente de red externa (Cuando viene de hospital adicional autorización debe presentar ordenes medicas)
+    si viene con varias autorización se debe ingresar por autorización
+    WINSISLAB
+    ambas se ingresan para un no. de autorización.
 '''
 
 class Server:
@@ -110,6 +110,8 @@ class Server:
                             Database().delete('delete from log.log_app WHERE l_id > %s', (0,))
                             Database().delete('delete from log.log_out where lout_id > %s', (0,))
                             client.send(f'{data.decode()}'.encode())
+                        elif mensaje == 'maintenance':
+                            pass
                         else:
                             # recibe cualquier mensaje y debe procesar en formato HL7
                             name_file = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') + '_' + str(random.randrange(0, 100000))
@@ -295,7 +297,7 @@ class Server:
                                                                     address=address,
                                                                     phone=phone,
                                                                     cellphone=cellphone,
-                                                                    email=email,
+                                                                    email=email.replace('^', ''),
                                                                     active=True
                                                                 )
 

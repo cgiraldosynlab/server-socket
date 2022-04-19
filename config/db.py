@@ -4,6 +4,20 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 class Database:
+
+    '''
+    setting para la base de datos en variables de entorno
+    LINUX/MACOS
+    export PG_HOST=172.31.4.8 PG_PORT=5432 PG_USERNAME=uwinsisdb PG_PASSWORD=42931W1n4 PG_DATABASE=WINSISLAB PG_ENCODING=LATIN1
+
+    WINDOWS
+    set PG_HOST=172.31.4.8
+    set PG_PORT=5432
+    set PG_USERNAME=uwinsislab
+    set PG_PASSWORD=42931W1n4
+    set PG_DATABASE=WINSISLAB
+    set PG_ENCODING=LATIN1
+    '''
     
     def __init__(self, **args):
         __ISCONNECT = False
@@ -12,19 +26,12 @@ class Database:
             self.qry = None            
 
             # leer parametros de conexión de las variables de entorno del S.O
-            #pg_host = os.environ['PG_HOST']
-            #pg_port = os.environ['PG_PORT']
-            #pg_username = os.environ['PG_USERNAME']
-            #pg_password = os.environ['PG_PASSWORD']
-            #pg_database = os.environ['PG_DATABASE']
-            #pg_encoding = os.environ['PG_CHARSET']
-
-            pg_host = '172.31.4.8'
-            pg_port = '5432'
-            pg_username = 'uwinsisdb'
-            pg_password = '42931W1n4'
-            pg_database = 'WINSISLAB'
-            pg_encoding = 'LATIN1'
+            pg_host = os.environ['PG_HOST']
+            pg_port = os.environ['PG_PORT']
+            pg_username = os.environ['PG_USERNAME']
+            pg_password = os.environ['PG_PASSWORD']
+            pg_database = os.environ['PG_DATABASE']
+            pg_encoding = os.environ['PG_ENCODING']
 
             self.conn = psycopg2.connect(
                 host=pg_host,

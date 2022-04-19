@@ -86,7 +86,8 @@ class ClientSocket:
                   from log.log_in li
                  where li.ln_fecha        >= %s
                    and li.ln_u_usuarios like %s
-            """, ('2022-01-01', 'HISJOB-%'))
+                   and ln_id   = %s
+            """, ('2022-01-01', 'HISJOB-%', '6015888'))
 
             cant_ordenes = len(rows)
             try:
