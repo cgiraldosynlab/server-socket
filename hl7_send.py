@@ -173,14 +173,14 @@ class OrderHL7(Database, SQLite):
                 hl7_geral = f'MSH|^~\&|HIUSJ||SYNLABCOL||{datetime.datetime.now().strftime("%Y%M%d%H%M%s")}||ORM^O01|{row["f008_id"]}|P|2.3||||||8859/1||||||||| \n'
                 hl7_geral += f'PID|1|{row["f002_code"]}^{row["f003_number"]}|{row["f008_history"]}|{row["f008_history"]}|{row["f003_last_name"]} {row["f003_middle_name"]}^{row["f003_first_name"]} {row["f003_second_name"]}||{str(row["f003_birth_date"]).replace("-", "")}|{row["f003_gender"]}|||sin datos||0|{row["f003_email"]}||||||||||||||||||||||||||| \n'
                 hl7_geral += f'PV1|1|{row["f008_type_service"]}|{row["f008_bed"]}||||||||||||||||||||||||||||||||||||||||| \n'
-                hl7_geral += f'IN1|1|900098476|443^Hospital Infantil Universitario de San Jose||||||||||||||||||||||||||||||||||||||||||||||||||||| \n'
-                hl7_geral += f'ORC|NW|{row["f008_number"]}^900098476||||||{row["FechaHora"]}|{row["FechaHora"]}|0|||||{service_cod}^{row["f006_name"]}^^{row["f006_code"]}^{row["f006_name"]}|||||||||||||||||||| \n'
+                hl7_geral += f'IN1|1|860030582|443^Hospital Infantil Universitario de San Jose||||||||||||||||||||||||||||||||||||||||||||||||||||| \n'
+                hl7_geral += f'ORC|NW|{row["f008_number"]}^860030582||||||{row["FechaHora"]}|{row["FechaHora"]}|0|||||{service_cod}^{row["f006_name"]}^^{row["f006_code"]}^{row["f006_name"]}|||||||||||||||||||| \n'
 
                 ''' buscar detalles de la orden '''
                 obr_pos = 1
                 rows_details = self.db.cursor.execute(self.__SQLDETAILS, (0, row['f008_id'])).fetchall()
                 for item in rows_details:
-                    hl7_geral += f'OBR|{obr_pos}|{item["f009_barcode"]}^900098476||{item["f009_test"]}^{item["f009_name"]}|||||{item["FechaHora"]}|||||||||||||||||||||||||||||||||||||||||||||| \n'
+                    hl7_geral += f'OBR|{obr_pos}|{item["f009_barcode"]}^860030582||{item["f009_test"]}^{item["f009_name"]}|||||{item["FechaHora"]}|||||||||||||||||||||||||||||||||||||||||||||| \n'
                     try:
                         self.db.cursor.execute(
                             'UPDATE t009_details SET f009_indicted = TRUE, f009_indicted_at = (SELECT (datetime("now", "localtime"))) WHERE f009_id = ?',
@@ -228,14 +228,14 @@ class OrderHL7(Database, SQLite):
                 hl7_geral = f'MSH|^~\&|HIUSJ||SYNLABCOL||{datetime.datetime.now().strftime("%Y%M%d%H%M%s")}||ORM^O01|{row["f008_id"]}|P|2.3||||||8859/1||||||||| \n'
                 hl7_geral += f'PID|1|{row["f002_code"]}^{row["f003_number"]}|{row["f008_history"]}|{row["f008_history"]}|{row["f003_last_name"]} {row["f003_middle_name"]}^{row["f003_first_name"]} {row["f003_second_name"]}||{str(row["f003_birth_date"]).replace("-","")}|{row["f003_gender"]}|||sin datos||0|{row["f003_email"]}||||||||||||||||||||||||||| \n'
                 hl7_geral += f'PV1|1|{row["f008_type_service"]}|{row["f008_bed"]}||||||||||||||||||||||||||||||||||||||||| \n'
-                hl7_geral += f'IN1|1|900098476|443^Hospital Infantil Universitario de San Jose||||||||||||||||||||||||||||||||||||||||||||||||||||| \n'
-                hl7_geral += f'ORC|NW|{row["f008_number"]}-COVID^900098476||||||{row["FechaHora"]}|{row["FechaHora"]}|0|||||{service_cod}^{row["f006_name"]}^^{row["f006_code"]}^{row["f006_name"]}|||||||||||||||||||| \n'
+                hl7_geral += f'IN1|1|860030582|443^Hospital Infantil Universitario de San Jose||||||||||||||||||||||||||||||||||||||||||||||||||||| \n'
+                hl7_geral += f'ORC|NW|{row["f008_number"]}-COVID^860030582||||||{row["FechaHora"]}|{row["FechaHora"]}|0|||||{service_cod}^{row["f006_name"]}^^{row["f006_code"]}^{row["f006_name"]}|||||||||||||||||||| \n'
 
                 ''' buscar detalles de la orden '''
                 obr_pos = 1
                 rows_details = self.db.cursor.execute(self.__SQLDETAILS, (1, row['f008_id'], ))
                 for item in rows_details:
-                    hl7_geral += f'OBR|{obr_pos}|{item["f009_barcode"]}^900098476||{item["f009_test"]}^{item["f009_name"]}|||||{item["FechaHora"]}|||||||||||||||||||||||||||||||||||||||||||||| \n'
+                    hl7_geral += f'OBR|{obr_pos}|{item["f009_barcode"]}^860030582||{item["f009_test"]}^{item["f009_name"]}|||||{item["FechaHora"]}|||||||||||||||||||||||||||||||||||||||||||||| \n'
                     try:
                         self.db.cursor.execute('UPDATE t009_details SET f009_indicted = TRUE, f009_indicted_at = (SELECT (datetime("now", "localtime"))) WHERE f009_id = ?', (item['f009_id'], ))
                         self.db.conn.commit()
