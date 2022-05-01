@@ -356,7 +356,7 @@ class Server:
 
                                                         service_order = ''
                                                         if type_company == 'P':
-                                                            service_order = f'PART-{location_cod}'
+                                                            service_order = f'PARTICULAR-{location_cod}'
                                                         else:
                                                             service_order = f'{company_cod}-{location_cod}'
 

@@ -120,7 +120,9 @@ class OrderHL7(Database, SQLite):
                  , tp.f003_cell_phone
                  , tp.f003_phone
                  , tp.f003_email
+                 , tm.f007_control_id
               FROM t008_orders  		o
+        INNER JOIN t007_messages        tm  ON (tm.f007_id      = o.f008_f007_id )
         INNER JOIN t009_details 		od  ON (od.f009_f008_id = o.f008_id      )
         INNER JOIN t012_test    		tt  ON (tt.f012_code    = od.f009_test   )
         INNER JOIN t003_patients 		tp  ON (tp.f003_id      = o.f008_f003_id )
@@ -170,7 +172,7 @@ class OrderHL7(Database, SQLite):
                 else:
                     service_cod = row["f008_service"]
 
-                hl7_geral = f'MSH|^~\&|HIUSJ||SYNLABCOL||{datetime.datetime.now().strftime("%Y%M%d%H%M%s")}||ORM^O01|{row["f008_id"]}|P|2.3||||||8859/1||||||||| \n'
+                hl7_geral = f'MSH|^~\&|HIUSJ||SYNLABCOL||{datetime.datetime.now().strftime("%Y%M%d%H%M%s")}||ORM^O01|{row["f007_control_id"]}|P|2.3||||||8859/1||||||||| \n'
                 hl7_geral += f'PID|1|{row["f002_code"]}^{row["f003_number"]}|{row["f008_history"]}|{row["f008_history"]}|{row["f003_last_name"]} {row["f003_middle_name"]}^{row["f003_first_name"]} {row["f003_second_name"]}||{str(row["f003_birth_date"]).replace("-", "")}|{row["f003_gender"]}|||sin datos||0|{row["f003_email"]}||||||||||||||||||||||||||| \n'
                 hl7_geral += f'PV1|1|{row["f008_type_service"]}|{row["f008_bed"]}||||||||||||||||||||||||||||||||||||||||| \n'
                 hl7_geral += f'IN1|1|860030582|443^Hospital Infantil Universitario de San Jose||||||||||||||||||||||||||||||||||||||||||||||||||||| \n'
@@ -225,7 +227,7 @@ class OrderHL7(Database, SQLite):
                 else:
                     service_cod = f'{row["f008_service"]}-COVID'
 
-                hl7_geral = f'MSH|^~\&|HIUSJ||SYNLABCOL||{datetime.datetime.now().strftime("%Y%M%d%H%M%s")}||ORM^O01|{row["f008_id"]}|P|2.3||||||8859/1||||||||| \n'
+                hl7_geral = f'MSH|^~\&|HIUSJ||SYNLABCOL||{datetime.datetime.now().strftime("%Y%M%d%H%M%s")}||ORM^O01|{row["f007_control_id"]}|P|2.3||||||8859/1||||||||| \n'
                 hl7_geral += f'PID|1|{row["f002_code"]}^{row["f003_number"]}|{row["f008_history"]}|{row["f008_history"]}|{row["f003_last_name"]} {row["f003_middle_name"]}^{row["f003_first_name"]} {row["f003_second_name"]}||{str(row["f003_birth_date"]).replace("-","")}|{row["f003_gender"]}|||sin datos||0|{row["f003_email"]}||||||||||||||||||||||||||| \n'
                 hl7_geral += f'PV1|1|{row["f008_type_service"]}|{row["f008_bed"]}||||||||||||||||||||||||||||||||||||||||| \n'
                 hl7_geral += f'IN1|1|860030582|443^Hospital Infantil Universitario de San Jose||||||||||||||||||||||||||||||||||||||||||||||||||||| \n'
