@@ -166,7 +166,7 @@ class OrderHL7(Database, SQLite):
                 service_cod = ''
 
                 if str(row['f008_type_service']).upper() == 'P':
-                    service_cod = f"PART-{row['f004_code']}"
+                    service_cod = f"PARTICULAR-{row['f004_code']}"
                 else:
                     service_cod = row["f008_service"]
 
@@ -221,7 +221,7 @@ class OrderHL7(Database, SQLite):
                 service_cod = f'{row["f008_service"]}-COVID'
 
                 if str(row['f008_type_service']).upper() == 'P':
-                    service_cod = f"PART-{row['f004_code']}-COVID"
+                    service_cod = f"PARTICULAR-{row['f004_code']}-COVID"
                 else:
                     service_cod = f'{row["f008_service"]}-COVID'
 
