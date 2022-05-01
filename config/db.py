@@ -3,6 +3,9 @@ import sqlite3
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
+
+LIMIT_RETRIES = 10
+
 class Database:
 
     '''
@@ -13,7 +16,7 @@ class Database:
     WINDOWS
     set PG_HOST=172.31.4.8
     set PG_PORT=5432
-    set PG_USERNAME=uwinsislab
+    set PG_USERNAME=uwinsisdb
     set PG_PASSWORD=42931W1n4
     set PG_DATABASE=WINSISLAB
     set PG_ENCODING=LATIN1
@@ -38,7 +41,8 @@ class Database:
                 port=pg_port,
                 dbname=pg_database,
                 user=pg_username,
-                password=pg_password
+                password=pg_password,
+                connect_timeout=3
             )
             self.qry = self.conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
             rows = self.qry.execute('SELECT 1 + 1')
@@ -118,24 +122,26 @@ class SQLite:
     def __init__(self):
         try:
             ruta_db = os.path.dirname(__file__)
+            is_exists = os.path.exists(f'{ruta_db}/synlab.db')
             self.conn = sqlite3.connect(f'{ruta_db}/synlab.db', timeout=60)
             self.conn.row_factory = sqlite3.Row
             self.cursor = self.conn.cursor()
 
             # crear database
-            if os.path.exists(f'{ruta_db}/backup.sql'):
-                f = open(f'{ruta_db}/backup.sql')
-                try:
-                    self.cursor.execute('BEGIN TRANSACTION;')
-                    scripts = f.read().split(';')
-                    for script in scripts:
-                        self.cursor.execute(script)
-                    self.cursor.execute('COMMIT;')
-                    f.close()
-                    os.rename(f'{ruta_db}/backup.sql', f'{ruta_db}/backup_ok.sql')
-                except Exception as e:
-                    self.cursor.execute('ROLLBACK;')
-                    print('error al restaurar la base de datos', e)
+            if not is_exists:
+                if os.path.exists(f'{ruta_db}/backup.sql'):
+                    f = open(f'{ruta_db}/backup.sql')
+                    try:
+                        self.cursor.execute('BEGIN TRANSACTION;')
+                        scripts = f.read().split(';')
+                        for script in scripts:
+                            self.cursor.execute(script)
+                        self.cursor.execute('COMMIT;')
+                        f.close()
+                        #os.rename(f'{ruta_db}/backup.sql', f'{ruta_db}/backup_ok.sql')
+                    except Exception as e:
+                        self.cursor.execute('ROLLBACK;')
+                        print('error al restaurar la base de datos', e)
         except Exception as e:
             print('error:', e)
 

@@ -154,6 +154,7 @@ cython_debug/
 # file customer in this app
 *.hl7
 *.db
+*.sql
 
 # custom folder
 files/

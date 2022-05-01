@@ -1,4 +1,5 @@
 import datetime
+import os
 import time
 import gc
 from models.data_sqlite import LogApp
@@ -9,11 +10,25 @@ from suds.client import Client
 
 class SynlabSOAP:
 
+    '''
+
+    enviroment
+    WSDL_PROD=http://container.angel.com.co:8090/WSDLLInterconexiones.dll/wsdl/IIntegracion
+    WSDL_TEST=http://container.angel.com.co:8091/WSDLLInterconexiones.dll/wsdl/IIntegracion
+    '''
+
     __DB__ = None
 
     def __init__(self):
+        '''
+        if os.environ['WSDL_PROD']:
+            self.URL_SOAP = 'http://container.angel.com.co:8090/WSDLLInterconexiones.dll/wsdl/IWSInterconexiones'
+        else:
+            self.URL_SOAP = 'http://container.angel.com.co:8091/WSDLLInterconexiones.dll/wsdl/IWSInterconexiones'
+        '''
+
         #self.URL_SOAP = 'http://container.angel.com.co:8091/WSDLLInterconexiones.dll/wsdl/IWSInterconexiones'
-        self.URL_SOAP = 'http://container.angel.com.co:8091/WSDLLInterconexiones.dll/wsdl/IIntegracion'
+        self.URL_SOAP = 'http://container.angel.com.co:8090/WSDLLInterconexiones.dll/wsdl/IIntegracion'
         self.USERNAME = 'HIUSJ'
         self.PASSWORD = 'SElVU0o='
         self.__DB__ = SQLite()
@@ -83,6 +98,7 @@ class OrderHL7(Database, SQLite):
                  , o.f008_time
                  , replace(o.f008_date,"-","") || 
                    replace(o.f008_time,":","") as FechaHora
+                 , tl.f004_code
                  , o.f008_priority
                  , o.f008_type_service
                  , o.f008_service
@@ -113,7 +129,7 @@ class OrderHL7(Database, SQLite):
         INNER JOIN t006_companies       tc  ON (tc.f006_id      = o.f008_f006_id )
              WHERE od.f009_indicted = False
                AND tt.f012_group_by = ?
-          ORDER BY o.f008_id ASC  limit 10 '''
+          ORDER BY o.f008_id ASC'''
 
     __SQLDETAILS = '''
             SELECT od.f009_id
@@ -143,14 +159,14 @@ class OrderHL7(Database, SQLite):
             fecha = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             print(f'[x] {fecha} | SEARCH | buscando examenes tipo 0')
 
-            rows = self.db.cursor.execute(self.__SQL, (0, 'EPS002')).fetchall()
+            rows = self.db.cursor.execute(self.__SQL, (0, )).fetchall()
             index = 0
             for row in rows:
                 format = '%Y%m%d%H%M%S'
                 service_cod = ''
 
                 if str(row['f008_type_service']).upper() == 'P':
-                    service_cod = 'PART'
+                    service_cod = f"PART-{row['f004_code']}"
                 else:
                     service_cod = row["f008_service"]
 
@@ -198,11 +214,16 @@ class OrderHL7(Database, SQLite):
             fecha = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             print(f'[x] {fecha} | SEARCH | buscando examenes tipo 1')
 
-            rows = self.db.cursor.execute(self.__SQL, (1, 'EPS002')).fetchall()
+            rows = self.db.cursor.execute(self.__SQL, (1, )).fetchall()
             index = 0
             for row in rows:
                 format = '%Y%m%d%H%M%S'
                 service_cod = f'{row["f008_service"]}-COVID'
+
+                if str(row['f008_type_service']).upper() == 'P':
+                    service_cod = f"PART-{row['f004_code']}-COVID"
+                else:
+                    service_cod = f'{row["f008_service"]}-COVID'
 
                 hl7_geral = f'MSH|^~\&|HIUSJ||SYNLABCOL||{datetime.datetime.now().strftime("%Y%M%d%H%M%s")}||ORM^O01|{row["f008_id"]}|P|2.3||||||8859/1||||||||| \n'
                 hl7_geral += f'PID|1|{row["f002_code"]}^{row["f003_number"]}|{row["f008_history"]}|{row["f008_history"]}|{row["f003_last_name"]} {row["f003_middle_name"]}^{row["f003_first_name"]} {row["f003_second_name"]}||{str(row["f003_birth_date"]).replace("-","")}|{row["f003_gender"]}|||sin datos||0|{row["f003_email"]}||||||||||||||||||||||||||| \n'
@@ -268,8 +289,6 @@ try:
             order.search_covid()
             time.sleep(5)
             order.send_pend()
-            #time.sleep(10)
-            #sn = SynlabSOAP()
         except Exception as e:
             print(f'[x] {fecha} | ERROR | error al buscar la data | error: {e} ')
         finally:
