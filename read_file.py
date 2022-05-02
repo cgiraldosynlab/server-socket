@@ -105,6 +105,7 @@ class ReadHL7:
                         finally:
                             file.close()
 
+                    print('is_error: ', is_error)
                     if is_error:
                         os.renames(name_path, f'{name_path}.error')
                         status = False
