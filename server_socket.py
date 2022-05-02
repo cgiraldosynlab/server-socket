@@ -13,6 +13,7 @@ from helpers.logger import LogSys
 from controllers.message_hl7 import MSH, MSA, ACK
 from models.data_sqlite import Paciente, Ubicacion, Servicio, Empresa, TipoDocumento, MensajeIn, MensajeError, Orden, Test
 from hl7 import (Message, Segment, Component, Sequence, Field, Accessor, HL7Exception)
+from helpers import clearConsole
 
 '''
 MAC/LINUX
@@ -64,6 +65,7 @@ class Server:
 
     def acceptClient(self):
 
+        borrar_form = 0
         fecha = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print(f'[x] - {fecha} | INFO | servidor iniciado | {self.__HOST}:{self.__PORT} ')
         while True:
@@ -507,6 +509,12 @@ class Server:
                     except Exception as e:
                         print('error', e)
 
+                if borrar_form >= 50:
+                    borrar_form = 0
+                    try:
+                        clearConsole()
+                    except:
+                        pass
             except Exception as e:
                 LogSys().error(f'error [{e}]')
             finally:

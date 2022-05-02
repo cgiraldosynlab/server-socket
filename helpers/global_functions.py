@@ -20,3 +20,9 @@ def get_files(path, extension='txt') -> []:
         log_show(msg=e, level='ERROR', procedure='get_files')
         return []
 
+def clearConsole():
+    command = 'clear'
+    if os.name in ('nt', 'dos'):  # If Machine is running on Windows, use cls
+        command = 'cls'
+    os.system(command)
+

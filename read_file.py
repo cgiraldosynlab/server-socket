@@ -1,12 +1,12 @@
+import os
 import os.path
 import socket
 import time
 
 from config import Config
-from helpers import log_show, get_files
+from helpers import log_show, get_files, clearConsole
 
 config = Config()
-
 
 class ClientSocket:
     __host: str = ''
@@ -127,8 +127,22 @@ class ReadHL7:
 
 
 if __name__ == '__main__':
+    import gc
+
     loadHL7 = ReadHL7()
+    intentos = 0
     while True:
-        time.sleep(1)
-        loadHL7.load_data()
-        time.sleep(5)
+        try:
+            time.sleep(1)
+            loadHL7.load_data()
+            time.sleep(5)
+            intentos += 1
+
+            if intentos >= 50:
+                try:
+                    clearConsole()
+                except:
+                    pass
+                intentos = 0
+        finally:
+            gc.collect()

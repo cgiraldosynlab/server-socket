@@ -8,7 +8,7 @@ from suds.xsd.doctor import ImportDoctor, Import
 from suds.client import Client
 
 from config import Config
-from helpers import get_fecha
+from helpers import get_fecha, clearConsole
 
 cnf = Config()
 
@@ -283,6 +283,7 @@ print(f'[+] {get_fecha()} | BEGIN | iniciando integración ')
 fecha = get_fecha()
 order = OrderHL7()
 try:
+    borrar = 0
     while True:
         ''' buscar todas las ordenes pendientes por trasmitir '''
         try:
@@ -290,6 +291,13 @@ try:
             time.sleep(1)
             order.search_covid()
             time.sleep(5)
+
+            if borrar >= 50:
+                borrar = 0
+                try:
+                    clearConsole()
+                except:
+                    pass
         except Exception as e:
             print(f'[x] {fecha} | ERROR | error al buscar la data | error: {e} ')
         finally:
