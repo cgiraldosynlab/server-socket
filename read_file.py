@@ -62,6 +62,7 @@ class ReadHL7:
             for name_file in get_files(path=self.__path_read, extension='in'):
 
                 global status
+                global is_error
                 name_path = f'{self.__path_read}//{name_file}'
                 file_size = os.path.getsize(name_path)
 
@@ -74,28 +75,37 @@ class ReadHL7:
                             content = file.read().strip('').replace('\ufeff','')
                             if content == '':
                                 log_show(msg='error fichero vacio', level='info', procedure='load_data', file=__class__)
-                                os.renames(name_path, f'{name_path}.error')
-                                status = False
+                                is_error = True
+                                #os.renames(name_path, f'{name_path}.error')
+                                #status = False
                                 return
 
                             if not content.strip().startswith('MSH|'):
                                 log_show(msg='archivo no es un hl7', level='info', procedure='load_data', file=__class__)
-                                os.renames(name_path, f'{name_path}.error')
-                                status = False
+                                is_error = True
+                                #os.renames(name_path, f'{name_path}.error')
+                                #status = False
                                 return
 
                             client = ClientSocket()
                             log_show(msg='enviando mensaje', level='info', procedure='load_data', file=__class__)
                             status = client.send_data(content)
+                        except Exception as e:
+                            log_show(msg=e, level='error', procedure='load_data', file=__class__)
                         finally:
                             file.close()
-                    if status:
-                        #os.unlink(name_path)
-                        os.renames(name_path, f'{name_path}.procesado')
-                        log_show(msg='fichero borrado', level='info', procedure='load_data', file=__class__)
-                    else:
+
+                    if is_error:
                         os.renames(name_path, f'{name_path}.error')
-                        log_show(msg='sin respuesta del server ', level='info', procedure='load_data', file=__class__)
+                        status = False
+                    else:
+                        if status:
+                            #os.unlink(name_path)
+                            os.renames(name_path, f'{name_path}.procesado')
+                            log_show(msg='fichero borrado', level='info', procedure='load_data', file=__class__)
+                        else:
+                            os.renames(name_path, f'{name_path}.error')
+                            log_show(msg='sin respuesta del server ', level='info', procedure='load_data', file=__class__)
         except Exception as e:
             log_show(msg=e, level='error', procedure='load_data', file=__class__)
 
