@@ -803,6 +803,19 @@ class MensajeIn(SQLite):
             self.conn.rollback()
             LogApp(f'{self.__NAME__} | set_response | {e}')
 
+    def cant_message(self, control_id):
+        try:
+            cantidad = 0
+            if control_id:
+                self.cursor.execute('select count(1) as cantidad from t007_messages tm where f007_control_id = ?', (control_id, ))
+                rows = self.cursor.fetchall()
+                if rows:
+                    for row in rows:
+                        cantidad = row['cantidad']
+            return cantidad
+        except Exception as e:
+            LogApp(f'{self.__NAME__} | cant_message | {e}')
+
 class MensajeError(SQLite):
 
     __NAME__ = 'MensajeError'

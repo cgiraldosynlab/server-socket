@@ -5,44 +5,45 @@ import gc
 from models.data_sqlite import LogApp
 from config.db import Database, SQLite
 from suds.xsd.doctor import ImportDoctor, Import
-#from suds.xsd.sxbasic import Import
 from suds.client import Client
+
+from config import Config
+from helpers import get_fecha
+
+cnf = Config()
 
 class SynlabSOAP:
 
-    '''
-
-    enviroment
-    WSDL_PROD=http://container.angel.com.co:8090/WSDLLInterconexiones.dll/wsdl/IIntegracion
-    WSDL_TEST=http://container.angel.com.co:8091/WSDLLInterconexiones.dll/wsdl/IIntegracion
-    '''
-
     __DB__ = None
+    __is_test = False
 
     def __init__(self):
-        '''
-        if os.environ['WSDL_PROD']:
-            self.URL_SOAP = 'http://container.angel.com.co:8090/WSDLLInterconexiones.dll/wsdl/IWSInterconexiones'
+        if cnf.global_enviroment.get('PYTHON_ENV'):
+            if cnf.global_enviroment['PYTHON_ENV'] == 'production':
+                self.URL_SOAP = cnf.global_enviroment['WSDL_PROD']
+            elif cnf.global_enviroment['PYTHON_ENV'] == 'develop':
+                self.__is_test = True
+                self.URL_SOAP = cnf.global_enviroment['WSDL_TEST']
+            else:
+                self.URL_SOAP = 'http://container.angel.com.co:8091/WSDLLInterconexiones.dll/wsdl/IIntegracion'
         else:
-            self.URL_SOAP = 'http://container.angel.com.co:8091/WSDLLInterconexiones.dll/wsdl/IWSInterconexiones'
-        '''
+            self.URL_SOAP = 'http://container.angel.com.co:8091/WSDLLInterconexiones.dll/wsdl/IIntegracion'
 
-        #self.URL_SOAP = 'http://container.angel.com.co:8091/WSDLLInterconexiones.dll/wsdl/IWSInterconexiones'
-        self.URL_SOAP = 'http://container.angel.com.co:8090/WSDLLInterconexiones.dll/wsdl/IIntegracion'
         self.USERNAME = 'HIUSJ'
         self.PASSWORD = 'SElVU0o='
         self.__DB__ = SQLite()
         self.__PG__ = Database()
 
-        try:
-            sql_search = "select pid from pg_catalog.pg_stat_activity where datname = %s and application_name IN %s"
-            sql_update_pg = 'select pg_terminate_backend(%s)'
-            rows = self.__PG__.query(sql_search, ('WINSISLAB_AVENIDA', ('WEBSERVICES', 'WEBSERVICES-LOG')))
-            if rows:
-                for row in rows:
-                    self.__PG__.query(sql_update_pg, (row.pid,))
-        except Exception as e:
-            print(e)
+        if self.__is_test:
+            try:
+                sql_search = "select pid from pg_catalog.pg_stat_activity where datname = %s and application_name IN %s"
+                sql_update_pg = 'select pg_terminate_backend(%s)'
+                rows = self.__PG__.query(sql_search, ('WINSISLAB_AVENIDA', ('WEBSERVICES', 'WEBSERVICES-LOG')))
+                if rows:
+                    for row in rows:
+                        self.__PG__.query(sql_update_pg, (row.pid,))
+            except Exception as e:
+                print(e)
 
     def send_order(self, id_queue, content):
         try:
@@ -131,7 +132,7 @@ class OrderHL7(Database, SQLite):
         INNER JOIN t006_companies       tc  ON (tc.f006_id      = o.f008_f006_id )
              WHERE od.f009_indicted = False
                AND tt.f012_group_by = ?
-          ORDER BY o.f008_id ASC'''
+          ORDER BY o.f008_id ASC '''
 
     __SQLDETAILS = '''
             SELECT od.f009_id
@@ -172,7 +173,7 @@ class OrderHL7(Database, SQLite):
                 else:
                     service_cod = row["f008_service"]
 
-                hl7_geral = f'MSH|^~\&|HIUSJ||SYNLABCOL||{datetime.datetime.now().strftime("%Y%M%d%H%M%s")}||ORM^O01|{row["f007_control_id"]}|P|2.3||||||8859/1||||||||| \n'
+                hl7_geral = f'MSH|^~\&|HIUSJ||SYNLABCOL||{datetime.datetime.now().strftime("%Y%m%d%H%M")}||ORM^O01|{row["f007_control_id"]}|P|2.3||||||8859/1||||||||| \n'
                 hl7_geral += f'PID|1|{row["f002_code"]}^{row["f003_number"]}|{row["f008_history"]}|{row["f008_history"]}|{row["f003_last_name"]} {row["f003_middle_name"]}^{row["f003_first_name"]} {row["f003_second_name"]}||{str(row["f003_birth_date"]).replace("-", "")}|{row["f003_gender"]}|||sin datos||0|{row["f003_email"]}||||||||||||||||||||||||||| \n'
                 hl7_geral += f'PV1|1|{row["f008_type_service"]}|{row["f008_bed"]}||||||||||||||||||||||||||||||||||||||||| \n'
                 hl7_geral += f'IN1|1|860030582|443^Hospital Infantil Universitario de San Jose||||||||||||||||||||||||||||||||||||||||||||||||||||| \n'
@@ -227,7 +228,7 @@ class OrderHL7(Database, SQLite):
                 else:
                     service_cod = f'{row["f008_service"]}-COVID'
 
-                hl7_geral = f'MSH|^~\&|HIUSJ||SYNLABCOL||{datetime.datetime.now().strftime("%Y%M%d%H%M%s")}||ORM^O01|{row["f007_control_id"]}|P|2.3||||||8859/1||||||||| \n'
+                hl7_geral = f'MSH|^~\&|HIUSJ||SYNLABCOL||{datetime.datetime.now().strftime("%Y%m%d%H%M")}||ORM^O01|{row["f007_control_id"]}|P|2.3||||||8859/1||||||||| \n'
                 hl7_geral += f'PID|1|{row["f002_code"]}^{row["f003_number"]}|{row["f008_history"]}|{row["f008_history"]}|{row["f003_last_name"]} {row["f003_middle_name"]}^{row["f003_first_name"]} {row["f003_second_name"]}||{str(row["f003_birth_date"]).replace("-","")}|{row["f003_gender"]}|||sin datos||0|{row["f003_email"]}||||||||||||||||||||||||||| \n'
                 hl7_geral += f'PV1|1|{row["f008_type_service"]}|{row["f008_bed"]}||||||||||||||||||||||||||||||||||||||||| \n'
                 hl7_geral += f'IN1|1|860030582|443^Hospital Infantil Universitario de San Jose||||||||||||||||||||||||||||||||||||||||||||||||||||| \n'
@@ -278,9 +279,8 @@ class OrderHL7(Database, SQLite):
             pass
 
 
-fecha = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-print(f'[x] {fecha} | BEGIN | iniciando integración ')
-
+print(f'[+] {get_fecha()} | BEGIN | iniciando integración ')
+fecha = get_fecha()
 order = OrderHL7()
 try:
     while True:
@@ -290,12 +290,10 @@ try:
             time.sleep(1)
             order.search_covid()
             time.sleep(5)
-            order.send_pend()
         except Exception as e:
             print(f'[x] {fecha} | ERROR | error al buscar la data | error: {e} ')
         finally:
             gc.collect()
 finally:
-    print(f'[x] {fecha} | FINISHED | finalizando integración ')
+    print(f'[+] {fecha} | FINISHED | finalizando integración ')
     gc.collect()
-

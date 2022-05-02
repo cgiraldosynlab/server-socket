@@ -155,7 +155,10 @@ cython_debug/
 *.hl7
 *.db
 *.sql
-.DS_Store
 
 # custom folder
 files/
+in-socket/
+
+# custom files hide
+.DS_Store

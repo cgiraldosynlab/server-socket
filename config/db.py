@@ -3,11 +3,9 @@ import sqlite3
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-
 LIMIT_RETRIES = 10
 
 class Database:
-
     '''
     setting para la base de datos en variables de entorno
     LINUX/MACOS
@@ -20,21 +18,39 @@ class Database:
     set PG_PASSWORD=42931W1n4
     set PG_DATABASE=WINSISLAB
     set PG_ENCODING=LATIN1
+    ----
+    pg_host = os.environ['PG_HOST']
+    pg_port = os.environ['PG_PORT']
+    pg_username = os.environ['PG_USERNAME']
+    pg_password = os.environ['PG_PASSWORD']
+    pg_database = os.environ['PG_DATABASE']
     '''
     
     def __init__(self, **args):
         __ISCONNECT = False
         try:
             self.conn = None
-            self.qry = None            
+            self.qry = None
 
-            # leer parametros de conexión de las variables de entorno del S.O
-            pg_host = os.environ['PG_HOST']
-            pg_port = os.environ['PG_PORT']
-            pg_username = os.environ['PG_USERNAME']
-            pg_password = os.environ['PG_PASSWORD']
-            pg_database = os.environ['PG_DATABASE']
-            pg_encoding = os.environ['PG_ENCODING']
+            # leer parametros de conexión
+            from .setting import Config
+            cnf = Config()
+
+            if cnf.global_enviroment.get('PYTHON_ENV'):
+                if cnf.global_enviroment['PYTHON_ENV'] == 'production':
+                    pg_host = cnf.global_enviroment['PG_HOST']
+                    pg_port = cnf.global_enviroment['PG_PORT']
+                    pg_username = cnf.global_enviroment['PG_USERNAME']
+                    pg_password = cnf.global_enviroment['PG_PASSWORD']
+                    pg_database = cnf.global_enviroment['PG_DATABASE']
+                elif cnf.global_enviroment['PYTHON_ENV'] == 'develop':
+                    pg_host = cnf.global_enviroment['PG_HOST_TEST']
+                    pg_port = cnf.global_enviroment['PG_PORT_TEST']
+                    pg_username = cnf.global_enviroment['PG_USERNAME_TEST']
+                    pg_password = cnf.global_enviroment['PG_PASSWORD_TEST']
+                    pg_database = cnf.global_enviroment['PG_DATABASE_TEST']
+
+            pg_encoding = cnf.global_enviroment['PG_ENCODING'] if cnf.global_enviroment.get('PG_ENCODING') else 'latin1'
 
             self.conn = psycopg2.connect(
                 host=pg_host,
@@ -45,10 +61,11 @@ class Database:
                 connect_timeout=3
             )
             self.qry = self.conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
+            print(f'[+] Database setting | host: {pg_host}:{pg_port} | Database: {pg_database} ')
             rows = self.qry.execute('SELECT 1 + 1')
             if rows: 
                 self.__ISCONNECT = True
-                print('[x] conectado con la base de datos')
+                print(f'[+] conectado con la base de datos | host: {pg_host}:{pg_port} | Database: {pg_database} ')
         except Exception as e:
             self.__ISCONNECT = False
             print('error:', e)

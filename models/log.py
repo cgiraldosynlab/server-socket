@@ -40,12 +40,6 @@ class LogIn(Database):
             super().__init__()
             self.usuario = usuario
             self.mensaje = mensaje
-
-            super().insert(
-                """
-                INSERT INTO log.log_in
-                """
-            )
-
+            super().insert('insert into log.log_in (ln_u_usuarios, ln_mensaej) values (%s, %s)', (self.usuario, self.mensaje))
         except Exception as e:
             print('error al registrar el log de entrada', e)

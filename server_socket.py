@@ -3,6 +3,8 @@ import os
 import gc
 import datetime
 import socket
+from builtins import enumerate
+
 import hl7
 import random
 from models.log import (LogIn, LogApp)
@@ -15,20 +17,13 @@ from hl7 import (Message, Segment, Component, Sequence, Field, Accessor, HL7Exce
 '''
 MAC/LINUX
 export SOCKET_SERVER_HOST=localhost SOCKET_SERVER_PORT=8000 SOCKET_SERVER_BUFFER=65507 SOCKET_SERVER_LIMIT_CLIENT=10
+export SOCKET_SERVER_HOST=172.31.4.70 SOCKET_SERVER_PORT=6001 SOCKET_SERVER_BUFFER=65507 SOCKET_SERVER_LIMIT_CLIENT=10
 
 WINDOWS
 set SOCKET_SERVER_HOST=172.31.5.70
 set SOCKET_SERVER_PORT=8000 
 set SOCKET_SERVER_BUFFER=65507 
 set SOCKET_SERVER_LIMIT_CLIENT=10
-
-dos tipos de pacientes.
-un unico plan 9418
-paciente de red externa (debe llegar con autorización)
-paciente de red externa (Cuando viene de hospital adicional autorización debe presentar ordenes medicas)
-si viene con varias autorización se debe ingresar por autorización
-WINSISLAB
-ambas se ingresan para un no. de autorización.
 '''
 
 class Server:
@@ -41,8 +36,8 @@ class Server:
     __CLIENT_LIMIT = 10
     __SC = None
     __CANCEL = False
-    __CHAR_IN = chr(11)
-    __CHAR_OUT = f'{chr(28)}{chr(13)}'
+    __CHAR_IN = f'{chr(11)}'
+    __CHAR_OUT = f'{chr(28)}'
     __FOLDER_PENDIENTE = 'pendiente'
     __FOLDER_PROCESADO = 'procesado'
 
@@ -95,7 +90,6 @@ class Server:
                 if not data: 
                     client.send('error - el mensaje no puede ser vacio'.encode())
                 else:
-
                     try:
                         print(f'[x] - {fecha} | INFO | recibiendo mensaje | info: {addr[0]}:{addr[1]}')
                         mensaje = data.decode(encoding='utf-8').replace(self.__CHAR_IN, '').replace(self.__CHAR_OUT, '')
@@ -122,13 +116,16 @@ class Server:
                                 msa = MSA('')
 
                                 ''' guardar mensaje '''
-                                mensaje_in = mensaje
-                                LogApp(codigo='python', mensaje=mensaje_in)
+                                mensaje_in = mensaje.strip()
+                                if mensaje_in.count('\ufeff') > 0:
+                                    mensaje_in = mensaje_in.replace('\ufeff', '')
+
                                 file.write(mensaje_in)
                                 file.close()
 
                                 ''' validar si es un mensaje HL7 '''
                                 if not hl7.ishl7(mensaje_in):
+                                    # arreglar mensaje de response
                                     msa.message = 'error al formatear el mensaje HL7'
                                     resp.add_msa(msa.get_str())
                                 else:
@@ -153,7 +150,7 @@ class Server:
 
                                     ''' extraer información '''
                                     try:
-                                        mensaje = MensajeIn(
+                                        mensajeIn = MensajeIn(
                                             buscar=False,
                                             control_id=h['MSH'][0][10][0],
                                             sender=h['MSH'][0][3][0],
@@ -165,7 +162,7 @@ class Server:
                                         )
 
                                         details = []
-                                        if mensaje.isFound:
+                                        if mensajeIn.isFound:
 
                                             ''' main | processing message '''
                                             is_order = False
@@ -176,6 +173,7 @@ class Server:
                                                     trama = line.split('|')
 
                                                     if seg == 'MSH':
+
                                                         ''' information header '''
                                                         sender = trama[2]
                                                         sender_facility = trama[3]
@@ -344,7 +342,7 @@ class Server:
                                                         ''' information order '''
                                                         order_number = trama[2]
                                                         if len(order_number.split('-')) > 2:
-                                                            order_number = order_number.split('-')[0] + '-' +order_number.split('-')[1]
+                                                            order_number = order_number.split('-')[0] + '-' + order_number.split('-')[1]
 
                                                         create_at = trama[7]
                                                         priority = create_at.split('^')[5]
@@ -367,7 +365,7 @@ class Server:
                                                                 'number': order_number,
                                                                 'date': f'{create_at[0:4]}-{create_at[4:6]}-{create_at[6:8]}',
                                                                 'time': f'{create_at[8:10]}:{create_at[10:12]}:{create_at[12:14]}',
-                                                                'messageId': mensaje.id,
+                                                                'messageId': mensajeIn.id,
                                                                 'patientId': patient.id,
                                                                 'locationId': location.id,
                                                                 'serviceId': 'NA',
@@ -431,41 +429,42 @@ class Server:
                                                 is_patient = False
 
                                                 ''' after sending message to database '''
-                                                if mensaje:
+                                                if mensajeIn:
 
-                                                    # registry order
-                                                    order = Orden(
-                                                        number=dicOrden.get('number'),
-                                                        date=dicOrden.get('date'),
-                                                        time=dicOrden.get('time'),
-                                                        messageId=dicOrden.get('messageId'),
-                                                        patientId=dicOrden.get('patientId'),
-                                                        locationId=dicOrden.get('locationId'),
-                                                        serviceId=dicOrden.get('serviceId'),
-                                                        companyId=dicOrden.get('companyId'),
-                                                        priority=dicOrden.get('priority'),
-                                                        bed=dicOrden.get('bed'),
-                                                        type=dicOrden.get('type'),
-                                                        entity=dicOrden.get('entity'),
-                                                        history=dicOrden.get('history'),
-                                                        service=dicOrden.get('service')
-                                                    )
-
-                                                    # registry details
-                                                    if order.isFound:
-                                                        order.add_details(details)
-                                                    else:
-                                                        ''' guardar el mensaje de error '''
-                                                        MensajeError(
-                                                            buscar=False,
-                                                            control_id=mensaje.control_id,
-                                                            sender=mensaje.sender,
-                                                            sender_facility=mensaje.sender_facility,
-                                                            reception=mensaje.reception,
-                                                            reception_facility=mensaje.reception_facility,
-                                                            type='ORM^O01',
-                                                            content=mensaje.content,
+                                                    if int(mensajeIn.cant_message(control_id=mensajeIn.control_id)) <= 1:
+                                                        # registry order
+                                                        order = Orden(
+                                                            number=dicOrden.get('number'),
+                                                            date=dicOrden.get('date'),
+                                                            time=dicOrden.get('time'),
+                                                            messageId=dicOrden.get('messageId'),
+                                                            patientId=dicOrden.get('patientId'),
+                                                            locationId=dicOrden.get('locationId'),
+                                                            serviceId=dicOrden.get('serviceId'),
+                                                            companyId=dicOrden.get('companyId'),
+                                                            priority=dicOrden.get('priority'),
+                                                            bed=dicOrden.get('bed'),
+                                                            type=dicOrden.get('type'),
+                                                            entity=dicOrden.get('entity'),
+                                                            history=dicOrden.get('history'),
+                                                            service=dicOrden.get('service')
                                                         )
+
+                                                        # registry details
+                                                        if order.isFound:
+                                                            order.add_details(details)
+                                                        else:
+                                                            ''' guardar el mensaje de error '''
+                                                            MensajeError(
+                                                                buscar=False,
+                                                                control_id=mensajeIn.control_id,
+                                                                sender=mensajeIn.sender,
+                                                                sender_facility=mensajeIn.sender_facility,
+                                                                reception=mensajeIn.reception,
+                                                                reception_facility=mensajeIn.reception_facility,
+                                                                type='ORM^O01',
+                                                                content=mensajeIn.content,
+                                                            )
 
                                             ''' send message to database '''
                                             msa.message = 'mensaje procesado con éxito'
@@ -473,26 +472,32 @@ class Server:
                                         else:
                                             ''' rechazar mensaje '''
                                             pass
+
+                                        # procesar mensaje
+                                        if mensajeIn and mensajeIn is not None:
+                                            mensajeIn.response = f'{resp.to_hl7()} \n {msa.to_str()}'
+                                            mensajeIn.set_response()
+
+                                        if mensajeIn and mensajeIn.response and str(mensajeIn.response) != '':
+                                            client.send(
+                                                f'{self.__CHAR_IN} {mensajeIn.response}{self.__CHAR_OUT}'.encode())
+                                        else:
+                                            client.send(
+                                                f'{self.__CHAR_IN} {resp.get_str()}\n{msa.to_str}{self.__CHAR_OUT}'.encode())
+
+                                        print(
+                                            f'[x] - {fecha} | SUCCESS | mensaje procesado con exito  | info: {addr[0]}:{addr[1]}')
                                     except Exception as e:
                                         print(f'[x] - {fecha} | ERROR | error: {e}')
 
-                                # procesar mensaje
-                                if mensaje:
-                                    mensaje.response = f'{resp.to_hl7()} \n {msa.to_str()}'
-                                    mensaje.set_response()
-
-                                if mensaje and mensaje.response and str(mensaje.response) != '':
-                                    client.send(f'{self.__CHAR_IN} {mensaje.response}{self.__CHAR_OUT}'.encode())
-                                else:
-                                    client.send(f'{self.__CHAR_IN} {resp.get_str()}\n{msa.to_str}{self.__CHAR_OUT}'.encode())
-
-                                print(f'[x] - {fecha} | SUCCESS | mensaje procesado con exito  | info: {addr[0]}:{addr[1]}')
+                                ''' cerrar conexion'''
                                 try:
                                     client.close()
                                 except:
                                     pass
                             except Exception as e:
-                                print(f'[x] {fecha} | ERROR | error: {e} ')
+                                print('entre')
+                                print(f'[+] {fecha} | ERROR | error: {e} ')
                                 msa = MSA('')
                                 msa.message = f'error: {e}'
                                 if isinstance(resp, ACK):
