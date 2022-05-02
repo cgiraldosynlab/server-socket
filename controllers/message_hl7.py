@@ -160,7 +160,7 @@ class ACK:
 
     def __init__(self, version):
         try:
-            self.__msh = MSH(type='ack^ack'.upper(), version=version)
+            self.__msh = MSH(type='ack^o01^ack'.upper(), version=version)
             self.__msa = []
         except Exception as e:
             print('ACK-ERROR', e)
