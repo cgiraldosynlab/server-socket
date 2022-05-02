@@ -29,10 +29,10 @@ class MSH:
                 control_id = hl7.generate_message_control_id()
                 self.field_separator = ''
                 self.encoding_caracteres = '^~\&'
-                self.sender = 'SYNLAB'
-                self.sender_facility = ''
-                self.receptor = ''
-                self.receptor_facility = ''
+                self.sender = 'LIS'
+                self.sender_facility = 'LIS'
+                self.receptor = 'HIS'
+                self.receptor_facility = 'SCS'
                 self.date_message = datetime.datetime.now().strftime('%Y%M%D%H%M%S%f').replace('/', '')
                 self.security = ''
                 self.message_type = type
