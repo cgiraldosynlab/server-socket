@@ -59,8 +59,10 @@ class ReadHL7:
             if self.__path_read == '':
                 return
             log_show(msg='buscando ficheros', level='info', procedure='load_data', file=__class__)
-            for name_file in get_files(path=self.__path_read, extension='in'):
-
+            log_show(msg=f'path {self.__path_read}', level='info', procedure='load_data', file=__class__)
+            list = get_files(path=self.__path_read, extension='in')
+            log_show(msg=f'se encontraron {len(list)} ficheros', level='info', procedure='load_data', file=__class__)
+            for name_file in list:
                 global status
                 global is_error
                 name_path = f'{self.__path_read}//{name_file}'
