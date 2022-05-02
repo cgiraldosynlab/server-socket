@@ -80,14 +80,14 @@ class ReadHL7:
                                 log_show(msg='error fichero vacio', level='info', procedure='load_data', file=__class__)
                                 is_error = True
                                 #os.renames(name_path, f'{name_path}.error')
-                                #status = False
+                                status = False
                                 return
 
                             if not content.strip().startswith('MSH|'):
                                 log_show(msg='archivo no es un hl7', level='info', procedure='load_data', file=__class__)
                                 is_error = True
                                 #os.renames(name_path, f'{name_path}.error')
-                                #status = False
+                                status = False
                                 return
 
                             client = ClientSocket()
@@ -98,7 +98,7 @@ class ReadHL7:
                         finally:
                             file.close()
 
-                    if is_error:
+                    if is_error == True:
                         os.renames(name_path, f'{name_path}.error')
                         status = False
                     else:
