@@ -81,25 +81,21 @@ class ReadHL7:
                     with open(name_path, encoding="utf-8") as file:
                         try:
                             content = file.read().strip('').replace('\ufeff', '')
-                            print('contenido:', content[0:50])
                             if content == '':
                                 log_show(msg='error fichero vacio', level='info', procedure='load_data', file=__class__)
                                 is_error = True
                                 # os.renames(name_path, f'{name_path}.error')
                                 status = False
-                                return
-
-                            if not content.strip().startswith('MSH|'):
+                            elif not content.strip().startswith('MSH|'):
                                 log_show(msg='archivo no es un hl7', level='info', procedure='load_data',
                                          file=__class__)
                                 is_error = True
                                 # os.renames(name_path, f'{name_path}.error')
                                 status = False
-                                return
-
-                            client = ClientSocket()
-                            log_show(msg='enviando mensaje', level='info', procedure='load_data', file=__class__)
-                            status = client.send_data(content)
+                            else:
+                                client = ClientSocket()
+                                log_show(msg='enviando mensaje', level='info', procedure='load_data', file=__class__)
+                                status = client.send_data(content)
                         except Exception as e:
                             log_show(msg=e, level='error', procedure='load_data', file=__class__)
                         finally:
