@@ -75,7 +75,7 @@ class ReadHL7:
                     with open(name_path) as file:
                         try:
                             content = file.read().strip('').replace('\ufeff','')
-                            print(dict(enumerate(content)))
+                            print(dict(enumerate(content[0:100])))
                             if content == '':
                                 log_show(msg='error fichero vacio', level='info', procedure='load_data', file=__class__)
                                 is_error = True
