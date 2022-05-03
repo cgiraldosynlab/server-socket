@@ -51,7 +51,7 @@ setup(
 
 # setup, es donde se especifica la descripción del project
 # @author: Cristian Giraldo
-# @date:
+# @d
 
 import os
 import gc

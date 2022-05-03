@@ -725,8 +725,8 @@ class Test(SQLite):
                     self.id = self.cursor.lastrowid
                     self.isFound = True
             else:
-                sql_update = 'update t012_test set f012_name = ?, f012_active = ?, f012_group_by = ? where f012_id = ?'
-                params_update = (self.name, self.active, self.groupBy, self.id)
+                sql_update = 'update t012_test set f012_name = ?, f012_active = ? where f012_id = ?'
+                params_update = (self.name, self.active, self.id)
                 self.cursor.execute(sql_update, params_update)
             self.conn.commit()
         except Exception as e:
