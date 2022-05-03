@@ -47,6 +47,7 @@ class SynlabSOAP:
 
     def send_order(self, id_queue, content):
         try:
+            print(f'[x] {fecha} | WSDL | enviando id_queue | {id_queue}')
             imp = Import('http://schemas.xmlsoap.org/soap/encoding/') #, location='http://schemas.xmlsoap.org/soap/encoding/')
             doctor = ImportDoctor(imp)
             client = Client(self.URL_SOAP, doctor=doctor)
@@ -276,6 +277,7 @@ class OrderHL7(Database, SQLite):
                                            ORDER BY f013_id ASC""").fetchall()
             if rows:
                 for row in rows:
+                    print(f"[x] {fecha} | WSDL | enviando id_queue | {row['f013_id']}")
                     synlabSoap = SynlabSOAP()
                     synlabSoap.send_order(row['f013_id'], row['f013_content'])
         except Exception as e:
@@ -290,10 +292,12 @@ try:
     while True:
         ''' buscar todas las ordenes pendientes por trasmitir '''
         try:
+            order.send_pend()
+            time.sleep(1)
             order.search()
             time.sleep(1)
             order.search_covid()
-            time.sleep(5)
+            time.sleep(1)
             order.send_pend()
 
             if borrar >= 50:
