@@ -242,6 +242,9 @@ class OrderHL7(Database, SQLite):
                     try:
                         self.db.cursor.execute('UPDATE t009_details SET f009_indicted = TRUE, f009_indicted_at = (SELECT (datetime("now", "localtime"))) WHERE f009_id = ?', (item['f009_id'], ))
                         self.db.conn.commit()
+                        if self.db.cursor.rowcount > 0:
+                            synlabSoap = SynlabSOAP()
+                            synlabSoap.send_order(self.db.cursor.lastrowid, hl7_geral)
                     except Exception as e:
                         self.db.conn.rollback()
                         print(e)
@@ -291,6 +294,7 @@ try:
             time.sleep(1)
             order.search_covid()
             time.sleep(5)
+            order.send_pend()
 
             if borrar >= 50:
                 borrar = 0
