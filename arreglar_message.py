@@ -26,16 +26,15 @@ class ReiniciarData(Database):
                 order by oh_id asc
             '''
             params = ('HIUSJ',)
-
-
             rows = self.query(sql, params)
             for row in rows:
                 for line in row.mensaje.split('\n'):
                     if line.split('|')[0].upper() == 'MSH':
                         control_id = line.split('|')[9]
-                        print(control_id,  row.control_id)
                         if control_id != '' and control_id != row.control_id:
                             try:
+                                log_show(msg=f'actualizando control id {control_id} -> {control_id}', level='info',
+                                         file=__file__)
                                 sql_update = 'update web_services.orm_hl7_in set ormhl7_control_id = %s where oh_id = %s and oh_sede_bd = %s'
                                 params_update = (control_id, row.id, row.sede_bd)
                                 self.update(sql_update, params_update)
