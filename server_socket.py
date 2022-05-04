@@ -360,7 +360,6 @@ class Server:
                                                         else:
                                                             service_order = f'{company_cod}-{location_cod}'
 
-
                                                         if not is_order:
                                                             isOrder = True
                                                             dicOrden = {

@@ -45,7 +45,7 @@ class SynlabSOAP:
             except Exception as e:
                 print(e)
 
-    def send_order(self, id_queue, content):
+    def send_order(self, id_queue, content, control_id):
         try:
             print(f'[x] {fecha} | WSDL | enviando id_queue | {id_queue}')
             imp = Import('http://schemas.xmlsoap.org/soap/encoding/') #, location='http://schemas.xmlsoap.org/soap/encoding/')
@@ -59,7 +59,7 @@ class SynlabSOAP:
 
             ''' message in HL7 '''
             request_data = client.factory.create('ns2:TclMessageHL7')
-            request_data.ControlID = id_queue
+            request_data.ControlID = id_queue if control_id == '' else control_id
             request_data.Version = '2.3'
             request_data.TypeMessage = 'ORM^0O1'
             request_data.MessageHL7 = content
@@ -176,7 +176,7 @@ class OrderHL7(Database, SQLite):
 
                 hl7_geral = f'MSH|^~\&|HIUSJ||SYNLABCOL||{datetime.datetime.now().strftime("%Y%m%d%H%M")}||ORM^O01|{row["f007_control_id"]}|P|2.3||||||8859/1||||||||| \n'
                 hl7_geral += f'PID|1|{row["f002_code"]}^{row["f003_number"]}|{row["f008_history"]}|{row["f008_history"]}|{row["f003_last_name"]} {row["f003_middle_name"]}^{row["f003_first_name"]} {row["f003_second_name"]}||{str(row["f003_birth_date"]).replace("-", "")}|{row["f003_gender"]}|||sin datos||0|{row["f003_email"]}||||||||||||||||||||||||||| \n'
-                hl7_geral += f'PV1|1|{row["f008_type_service"]}|{row["f008_bed"]}||||||||||||||||||||||||||||||||||||||||| \n'
+                hl7_geral += f'PV1|1|{row["f008_type_service"]}^{row["f008_bed"]}|||||||||||||||||||||||||||||||||||||||||| \n'
                 hl7_geral += f'IN1|1|860030582|443^Hospital Infantil Universitario de San Jose||||||||||||||||||||||||||||||||||||||||||||||||||||| \n'
                 hl7_geral += f'ORC|NW|{row["f008_number"]}^860030582||||||{row["FechaHora"]}|{row["FechaHora"]}|0|||||{service_cod}^{row["f006_name"]}^^{row["f006_code"]}^{row["f006_name"]}|||||||||||||||||||| \n'
 
@@ -201,7 +201,7 @@ class OrderHL7(Database, SQLite):
                     self.db.conn.commit()
                     if self.db.cursor.rowcount > 0:
                         synlabSoap = SynlabSOAP()
-                        synlabSoap.send_order(self.db.cursor.lastrowid, hl7_geral)
+                        synlabSoap.send_order(self.db.cursor.lastrowid, hl7_geral, row["f007_control_id"])
                 except Exception as e:
                     print(f'[x] {fecha} | ERROR-HL7 | error al guardar el fichero HL7 | {e}')
                     self.db.conn.rollback()
@@ -245,7 +245,7 @@ class OrderHL7(Database, SQLite):
                         self.db.conn.commit()
                         if self.db.cursor.rowcount > 0:
                             synlabSoap = SynlabSOAP()
-                            synlabSoap.send_order(self.db.cursor.lastrowid, hl7_geral)
+                            synlabSoap.send_order(self.db.cursor.lastrowid, hl7_geral, row["f007_control_id"])
                     except Exception as e:
                         self.db.conn.rollback()
                         print(e)
@@ -253,7 +253,7 @@ class OrderHL7(Database, SQLite):
 
                 ''' guardar mensaje '''
                 try:
-                    self.db.cursor.execute("insert into t013_queues (f013_f008_id, f013_control_id, f013_content ) values ( ?, ?, ? )", (row['f008_id'], row['f008_id'], hl7_geral))
+                    self.db.cursor.execute("insert into t013_queues (f013_f008_id, f013_control_id, f013_content ) values ( ?, ?, ? )", (row['f008_id'], row['f007_control_id'], hl7_geral))
                     self.db.conn.commit()
                 except Exception as e:
                     print(f'[x] {fecha} | ERROR-HL7 | error al guardar el fichero HL7 | {e}')
@@ -279,7 +279,7 @@ class OrderHL7(Database, SQLite):
                 for row in rows:
                     print(f"[x] {fecha} | WSDL | enviando id_queue | {row['f013_id']}")
                     synlabSoap = SynlabSOAP()
-                    synlabSoap.send_order(row['f013_id'], row['f013_content'])
+                    synlabSoap.send_order(row['f013_id'], row['f013_content'], ro)
         except Exception as e:
             pass
 
@@ -292,7 +292,6 @@ try:
     while True:
         ''' buscar todas las ordenes pendientes por trasmitir '''
         try:
-            order.send_pend()
             time.sleep(1)
             order.search()
             time.sleep(1)
