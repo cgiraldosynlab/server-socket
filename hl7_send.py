@@ -271,7 +271,7 @@ class OrderHL7(Database, SQLite):
             fecha = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             print(f'[x] {fecha} | PEND | buscando información pendiente para enviar')
 
-            rows = self.db.cursor.execute("""SELECT tq.f013_id, tq.f013_content
+            rows = self.db.cursor.execute("""SELECT tq.f013_id, tq.f013_content, f013_control_id
                                                FROM t013_queues tq
                                               WHERE tq.f013_indicted = False
                                            ORDER BY f013_id ASC""").fetchall()
@@ -279,7 +279,7 @@ class OrderHL7(Database, SQLite):
                 for row in rows:
                     print(f"[x] {fecha} | WSDL | enviando id_queue | {row['f013_id']}")
                     synlabSoap = SynlabSOAP()
-                    synlabSoap.send_order(row['f013_id'], row['f013_content'], ro)
+                    synlabSoap.send_order(id_queue=row['f013_id'], content=row['f013_content'], control_id=row['f013_control_id'])
         except Exception as e:
             pass
 

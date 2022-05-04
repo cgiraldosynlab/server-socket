@@ -497,7 +497,6 @@ class Server:
                                 except:
                                     pass
                             except Exception as e:
-                                print('entre')
                                 print(f'[+] {fecha} | ERROR | error: {e} ')
                                 msa = MSA('')
                                 msa.message = f'error: {e}'
