@@ -47,7 +47,7 @@ class SynlabSOAP:
 
     def send_order(self, id_queue, content, control_id):
         try:
-            print(f'[x] {fecha} | WSDL | enviando id_queue | {id_queue}')
+            print(f'[x] {fecha} | WSDL | enviando hl7 | {control_id}')
             imp = Import('http://schemas.xmlsoap.org/soap/encoding/') #, location='http://schemas.xmlsoap.org/soap/encoding/')
             doctor = ImportDoctor(imp)
             client = Client(self.URL_SOAP, doctor=doctor)
@@ -59,7 +59,7 @@ class SynlabSOAP:
 
             ''' message in HL7 '''
             request_data = client.factory.create('ns2:TclMessageHL7')
-            request_data.ControlID = id_queue if control_id == '' else control_id
+            request_data.ControlID = control_id
             request_data.Version = '2.3'
             request_data.TypeMessage = 'ORM^0O1'
             request_data.MessageHL7 = content
@@ -77,15 +77,15 @@ class SynlabSOAP:
 
                 ''' finally conections the services web'''
                 try:
-                    sql_search = "select pid from pg_catalog.pg_stat_activity where datname = %s and application_name in %s"
-                    sql_update_pg = 'select pg_terminate_backend( %s )'
-                    rows = self.__PG__.conn(sql_search, ('WINSISLAB_AVENIDA', ('WEBSERVICES', 'WEBSERVICES-LOG')))
-                    if rows:
-                        for row in rows:
-                            self.__PG__.query(sql_update_pg, (row.pid, ))
+                    if self.__is_test:
+                        sql_search = "select pid from pg_catalog.pg_stat_activity where datname = %s and application_name in %s"
+                        sql_update_pg = 'select pg_terminate_backend( %s )'
+                        rows = self.__PG__.conn(sql_search, ('WINSISLAB_AVENIDA', ('WEBSERVICES', 'WEBSERVICES-LOG')))
+                        if rows:
+                            for row in rows:
+                                self.__PG__.query(sql_update_pg, (row.pid, ))
                 except:
-                    pass
-
+                    LogApp(mensaje=f'error al liberar las conexiones | {e}')
                 time.sleep(1)
         except Exception as e:
             LogApp(mensaje=f'error al enviar el fichero HL7 \n error: {e}')
